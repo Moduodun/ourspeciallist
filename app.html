@@ -256,12 +256,13 @@
         <input id="ng-name" type="text" placeholder="e.g. My Children, Siblings, Work friends"/>
       </div>
       <div class="field">
-        <label>Members (names or emails)</label>
+        <label>Members</label>
         <div id="ng-tags" style="min-height:26px;margin-bottom:8px"></div>
         <div style="display:flex;gap:8px">
-          <input id="ng-member" type="text" placeholder="Type a name or email, press Enter" style="flex:1" onkeydown="if(event.key==='Enter'){addMTag();event.preventDefault()}"/>
+          <input id="ng-member" type="text" placeholder="Name or email — press Enter to add" style="flex:1" onkeydown="if(event.key==='Enter'){addMTag();event.preventDefault()}"/>
           <button class="btn btn-sm" onclick="addMTag()">Add</button>
         </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px"><i class="ti ti-info-circle" style="font-size:12px"></i> Add email addresses to automatically notify members when the group is created</div>
       </div>
       <div id="ng-err" class="err"></div>
       <button class="btn btn-primary btn-full" style="margin-top:18px" id="ng-btn" onclick="createGroup()">
@@ -525,8 +526,10 @@ async function showGroupDetail(gid){
     </div>
     <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
       <button class="btn btn-sm" onclick="shareCode('${code}','${esc(g.name)}')"><i class="ti ti-share" style="font-size:14px"></i> Share via…</button>
+      <button class="btn btn-sm btn-success" id="notify-btn-${gid}" onclick="notifyMembers('${gid}')"><i class="ti ti-bell" style="font-size:14px"></i> Notify members</button>
       <button class="btn btn-sm btn-danger" onclick="deleteGroup('${gid}')"><i class="ti ti-trash" style="font-size:14px"></i> Delete group</button>
-    </div>`;
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-top:8px"><i class="ti ti-info-circle" style="font-size:12px"></i> Notify members sends an email with the share code to all members with email addresses</div>`;
   go('s-group-detail');
 }
 
@@ -551,18 +554,58 @@ function addMTag(){
 function renderNgTags(){
   document.getElementById('ng-tags').innerHTML=tmpM.map((m,i)=>`<span class="tag">${esc(m)}<span class="tag-rm" onclick="tmpM.splice(${i},1);renderNgTags()">×</span></span>`).join('');
 }
+async function sendGroupNotification(ownerName,groupName,members,shareCode){
+  try{
+    await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-group-members',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+      body:JSON.stringify({ownerName,groupName,members,shareCode})
+    });
+  }catch(e){console.error('Notification error:',e);}
+}
+
 async function createGroup(){
   const name=document.getElementById('ng-name').value.trim();
   hideErr('ng-err');
   if(!name){showErr('ng-err','Please enter a group name.');return;}
   if(!tmpM.length){showErr('ng-err','Add at least one member.');return;}
   setBusy('ng-btn','ng-btn-txt',true,'');
-  const {error}=await sb.from('groups').insert({id:uid(),owner_id:CU.id,name,members:[...tmpM]});
+  const gid=uid();
+  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[...tmpM]});
   if(error){setBusy('ng-btn','ng-btn-txt',false,'Create group');showErr('ng-err','Failed to save. Please try again.');return;}
+  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:name,wishIds:[]};
+  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const emailMembers=tmpM.filter(m=>m.includes('@'));
+  if(emailMembers.length){
+    toast('Group created! Sending notifications…');
+    await sendGroupNotification(CU.name,name,emailMembers,code);
+    toast('Group created! Members notified ✓');
+  } else {
+    toast('Group created!');
+  }
   tmpM=[];renderNgTags();
   document.getElementById('ng-name').value='';
   setBusy('ng-btn','ng-btn-txt',false,'Create group');
-  toast('Group created!');go('s-groups');
+  go('s-groups');
+}
+
+async function notifyMembers(gid){
+  const gs=await sb.from('groups').select('*').eq('id',gid).single();
+  const g=gs.data;if(!g)return;
+  const {data:wg}=await sb.from('wish_groups').select('wish_id').eq('group_id',gid);
+  const wishIds=(wg||[]).map(x=>x.wish_id);
+  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
+  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const emailMembers=(g.members||[]).filter(m=>m.includes('@'));
+  if(!emailMembers.length){
+    toast('No email addresses in this group — add member emails to send notifications');
+    return;
+  }
+  const btn=document.getElementById('notify-btn-'+gid);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Sending…';}
+  await sendGroupNotification(CU.name,g.name,emailMembers,code);
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-bell"></i> Notify members';}
+  toast('Notifications sent to '+emailMembers.length+' member'+(emailMembers.length!==1?'s':'')+'! ✓');
 }
 async function deleteGroup(gid){
   if(!confirm('Delete this group? Your wishes will stay but won\'t be shared here anymore.'))return;
