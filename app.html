@@ -1,7 +1,800 @@
-<h2>Reset your password</h2>
-<p>Hi there,</p>
-<p>We received a request to reset your <strong>OurSpecialList</strong> password.</p>
-<p>Click the button below to choose a new password:</p>
-<p><a href="{{ .ConfirmationURL }}" style="background:#C4507A;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Reset my password →</a></p>
-<p style="color:#999;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
-<p style="color:#999;font-size:13px">— The OurSpecialList team</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OurSpecialList — Share gift wishlists with the right people</title>
+  <meta name="description" content="Create your gift wishlist and share it with exactly the right people for every special occasion."/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --brand:#C4507A;--brand-dark:#72243E;--brand-light:#FBEAF0;
+      --teal:#1D9E75;--teal-dark:#0F6E56;--teal-light:#E1F5EE;
+      --bg:#FFFFFF;--bg2:#F7F7F8;--border:#E5E5E7;
+      --text:#1A1A1A;--text2:#666668;--text3:#AEAEB2;
+      --radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,0.08);
+    }
+    @media(prefers-color-scheme:dark){
+      :root{--bg:#1C1C1E;--bg2:#2C2C2E;--border:#3A3A3C;--text:#F5F5F7;--text2:#AEAEB2;--text3:#636366}
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:640px;margin:0 auto;padding:1rem}
+    .screen{display:none}.screen.active{display:block}
+
+    /* NAV */
+    .nav{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+    .nav-title{font-size:17px;font-weight:600;flex:1;color:var(--text)}
+
+    /* LOGO */
+    .logo-wrap{display:flex;align-items:center;gap:10px}
+    .logo-icon{width:34px;height:34px;background:var(--brand-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-text{font-size:17px;font-weight:600;color:var(--text)}
+    .logo-text span{color:var(--brand)}
+
+    /* CARDS */
+    .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:12px;box-shadow:var(--shadow)}
+
+    /* BUTTONS */
+    .btn{border:1px solid var(--border);background:transparent;padding:8px 16px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;color:var(--text);font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all 0.12s;white-space:nowrap}
+    .btn:hover{background:var(--bg2)}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+    .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .btn-primary:hover:not(:disabled){background:var(--brand-dark);border-color:var(--brand-dark)}
+    .btn-sm{padding:5px 12px;font-size:13px}
+    .btn-ghost{border-color:transparent;color:var(--text2)}
+    .btn-ghost:hover{background:var(--bg2)}
+    .btn-danger{border-color:#E24B4A;color:#A32D2D}
+    .btn-danger:hover{background:#FCEBEB}
+    .btn-success{background:var(--teal);color:#fff;border-color:var(--teal)}
+    .btn-success:hover:not(:disabled){background:var(--teal-dark)}
+    .btn-full{width:100%;justify-content:center}
+
+    /* FORMS */
+    .field{margin-top:14px}
+    .field:first-child{margin-top:0}
+    label{font-size:13px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500}
+    input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);font-family:inherit}
+    input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(196,80,122,0.12)}
+    .err{color:#A32D2D;font-size:13px;margin-top:6px;display:none}
+
+    /* TABS */
+    .tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+    .tab{padding:8px 18px;font-size:14px;cursor:pointer;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--text2);background:transparent;font-family:inherit}
+    .tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+
+    /* BADGES */
+    .badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;display:inline-block}
+    .badge-must{background:#FBEAF0;color:#72243E}
+    .badge-love{background:#E1F5EE;color:#085041}
+    .badge-nice{background:#F1EFE8;color:#444441}
+    .badge-claimed{background:#E1F5EE;color:#085041}
+
+    /* TAGS */
+    .tag{display:inline-flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;margin:2px}
+    .tag-rm{cursor:pointer;color:var(--text3);font-size:13px;line-height:1}.tag-rm:hover{color:#E24B4A}
+
+    /* PILLS */
+    .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem}
+    .occ-pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:13px;cursor:pointer;background:transparent;color:var(--text);font-family:inherit;transition:all 0.12s}
+    .occ-pill.sel{background:var(--brand-light);border-color:var(--brand);color:var(--brand-dark);font-weight:500}
+
+    /* AVATAR */
+    .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+
+    /* MISC */
+    .lbl{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin:1.5rem 0 10px}
+    .empty{text-align:center;padding:3rem 1rem;color:var(--text3)}
+    .empty i{font-size:36px;display:block;margin-bottom:10px;color:var(--brand-light)}
+    .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:sp 0.7s linear infinite;flex-shrink:0}
+    .spin-dark{border-color:rgba(196,80,122,0.15);border-top-color:var(--brand)}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .loading-center{text-align:center;padding:2.5rem;display:flex;justify-content:center}
+    .code-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;font-family:monospace;word-break:break-all;cursor:pointer;line-height:1.6;transition:border-color 0.12s}
+    .code-box:hover{border-color:var(--brand)}
+    .avcol-0{background:#EEEDFE;color:#3C3489}
+    .avcol-1{background:#E1F5EE;color:#0F6E56}
+    .avcol-2{background:#FAECE7;color:#712B13}
+    .avcol-3{background:#FBEAF0;color:#72243E}
+    .avcol-4{background:#EAF3DE;color:#27500A}
+
+    /* HERO */
+    .hero{text-align:center;padding:2.5rem 0 2rem}
+    .hero-icon{width:68px;height:68px;background:var(--brand-light);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+    .hero-title{font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px}
+    .hero-sub{font-size:15px;color:var(--text2);line-height:1.6;max-width:300px;margin:0 auto}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1A1A;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;transition:all 0.3s;z-index:9999;white-space:nowrap}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    @media(max-width:480px){
+      .app{padding:0.75rem}
+      .nav{gap:6px}
+      .btn-sm{padding:4px 10px;font-size:12px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <!-- LOGIN -->
+  <div id="s-login" class="screen active">
+    <div class="hero">
+      <div class="hero-icon"><i class="ti ti-gift" style="font-size:32px;color:var(--brand)"></i></div>
+      <div class="hero-title">Our<span style="color:var(--brand)">Special</span>List</div>
+      <div class="hero-sub">Create your gift list and share it with exactly the right people for every occasion</div>
+    </div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="tab-in" onclick="setTab('in')">Log in</button>
+        <button class="tab" id="tab-up" onclick="setTab('up')">Sign up</button>
+      </div>
+      <div id="su-extra" style="display:none" class="field">
+        <label>Your name</label>
+        <input id="su-name" type="text" placeholder="e.g. Sarah Johnson"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="a-email" type="email" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="a-pw" type="password" placeholder="At least 6 characters"/>
+      </div>
+      <div id="a-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:16px" id="a-btn" data-mode="in" onclick="doAuth()">
+        <span id="a-btn-txt">Log in</span>
+      </button>
+      <div style="text-align:center;margin-top:10px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="a-switch" onclick="setTab('up')" style="font-size:13px">No account? Sign up free</button>
+        <button class="btn btn-ghost btn-sm" onclick="go('s-forgot')" style="font-size:13px;color:var(--brand)">Forgot password?</button>
+      </div>
+    </div>
+
+    <div class="lbl">Viewing someone's list?</div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">If someone shared an OurSpecialList code with you, paste it here.</div>
+      <div style="display:flex;gap:8px">
+        <input id="vc-input" type="text" placeholder="Paste share code here" style="flex:1"/>
+        <button class="btn btn-primary btn-sm" onclick="enterViewCode()"><i class="ti ti-eye"></i> View</button>
+      </div>
+      <div id="vc-err" class="err"></div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div id="s-forgot" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-login')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Reset password</div>
+    </div>
+    <div class="card">
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="width:52px;height:52px;background:var(--brand-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <i class="ti ti-lock-open" style="font-size:24px;color:var(--brand)"></i>
+        </div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Forgot your password?</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Enter your email address and we'll send you a link to reset your password.</div>
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input id="fp-email" type="email" placeholder="you@example.com"/>
+      </div>
+      <div id="fp-err" class="err"></div>
+      <div id="fp-success" style="display:none;background:var(--teal-light);border:1px solid var(--teal);border-radius:var(--radius-sm);padding:12px;margin-top:12px;font-size:13px;color:var(--teal-dark);line-height:1.6">
+        <i class="ti ti-check" style="font-size:14px;vertical-align:-2px"></i> <strong>Email sent!</strong> Check your inbox for a password reset link. It may take a minute to arrive.
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:16px" id="fp-btn" onclick="sendPasswordReset()">
+        <span id="fp-btn-txt">Send reset link</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- RESET PASSWORD (after clicking email link) -->
+  <div id="s-reset" class="screen">
+    <div class="nav">
+      <div class="nav-title">Set new password</div>
+    </div>
+    <div class="card">
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="width:52px;height:52px;background:var(--brand-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <i class="ti ti-lock" style="font-size:24px;color:var(--brand)"></i>
+        </div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Create a new password</div>
+        <div style="font-size:13px;color:var(--text2)">Choose a strong password for your account.</div>
+      </div>
+      <div class="field">
+        <label>New password</label>
+        <input id="rp-pw" type="password" placeholder="At least 6 characters"/>
+      </div>
+      <div class="field">
+        <label>Confirm new password</label>
+        <input id="rp-pw2" type="password" placeholder="Type it again"/>
+      </div>
+      <div id="rp-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:16px" id="rp-btn" onclick="doResetPassword()">
+        <span id="rp-btn-txt">Update password</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="s-home" class="screen">
+    <div class="nav">
+      <div class="logo-wrap" style="flex:1">
+        <div class="logo-icon"><i class="ti ti-gift" style="font-size:18px;color:var(--brand)"></i></div>
+        <div>
+          <div class="logo-text">Our<span>Special</span>List</div>
+          <div style="font-size:11px;color:var(--text3)" id="h-email"></div>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="go('s-groups')"><i class="ti ti-users"></i> Groups</button>
+      <button class="btn btn-primary btn-sm" onclick="go('s-add')"><i class="ti ti-plus"></i> Add</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" aria-label="Log out"><i class="ti ti-logout"></i></button>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:22px;font-weight:700;color:var(--text)" id="h-greeting"></div>
+      <div style="font-size:14px;color:var(--text2)">Your special gift list</div>
+    </div>
+    <div class="pill-row" id="occ-pills">
+      <button class="occ-pill sel" data-o="all" onclick="filterOcc(this)">All occasions</button>
+      <button class="occ-pill" data-o="Birthday" onclick="filterOcc(this)"><i class="ti ti-cake" style="font-size:12px"></i> Birthday</button>
+      <button class="occ-pill" data-o="Mother's Day" onclick="filterOcc(this)">Mother's Day</button>
+      <button class="occ-pill" data-o="Valentine's" onclick="filterOcc(this)">Valentine's</button>
+      <button class="occ-pill" data-o="Christmas" onclick="filterOcc(this)"><i class="ti ti-christmas-tree" style="font-size:12px"></i> Christmas</button>
+      <button class="occ-pill" data-o="Other" onclick="filterOcc(this)">Other</button>
+    </div>
+    <div id="wish-list"></div>
+  </div>
+
+  <!-- ADD WISH -->
+  <div id="s-add" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Add a wish</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>What would you love to receive?</label>
+        <input id="w-name" type="text" placeholder="e.g. Kindle Paperwhite, spa day, earrings…"/>
+      </div>
+      <div class="field">
+        <label>Link to the item (optional)</label>
+        <input id="w-url" type="url" placeholder="https://…"/>
+      </div>
+      <div class="field">
+        <label>Occasion</label>
+        <select id="w-occ">
+          <option>Birthday</option><option>Mother's Day</option><option>Valentine's</option><option>Christmas</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>How much do you want it?</label>
+        <select id="w-pri">
+          <option>Must have</option><option>Would love</option><option>Nice to have</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Share with which groups?</label>
+        <div id="w-grp-chk" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;min-height:24px"></div>
+      </div>
+      <div id="add-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:18px" id="add-btn" onclick="addWish()">
+        <span id="add-btn-txt">Add to my list</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- GROUPS -->
+  <div id="s-groups" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">My sharing groups</div>
+      <button class="btn btn-primary btn-sm" onclick="go('s-new-group')"><i class="ti ti-plus"></i> New</button>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Each group gets its own share code. Your children see different wishes than your siblings — you control who sees what.</div>
+    <div id="groups-list"></div>
+  </div>
+
+  <!-- NEW GROUP -->
+  <div id="s-new-group" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-groups')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Create a group</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>Group name</label>
+        <input id="ng-name" type="text" placeholder="e.g. My Children, Siblings, Work friends"/>
+      </div>
+      <div class="field">
+        <label>Members</label>
+        <div id="ng-tags" style="min-height:26px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input id="ng-member" type="text" placeholder="Name or email — press Enter to add" style="flex:1" onkeydown="if(event.key==='Enter'){addMTag();event.preventDefault()}"/>
+          <button class="btn btn-sm" onclick="addMTag()">Add</button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px"><i class="ti ti-info-circle" style="font-size:12px"></i> Add email addresses to automatically notify members when the group is created</div>
+      </div>
+      <div id="ng-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:18px" id="ng-btn" onclick="createGroup()">
+        <span id="ng-btn-txt">Create group</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- GROUP DETAIL -->
+  <div id="s-group-detail" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-groups')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title" id="gd-title"></div>
+    </div>
+    <div id="gd-body"></div>
+  </div>
+
+  <!-- VIEW (shared list) -->
+  <div id="s-view" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-login')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div>
+        <div class="nav-title" id="vw-title"></div>
+        <div style="font-size:12px;color:var(--text3)" id="vw-sub"></div>
+      </div>
+    </div>
+    <div class="card" style="border-color:var(--brand);margin-bottom:1rem">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px"><i class="ti ti-user" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i> Enter your name so they know who's buying each gift</div>
+      <input id="claimer" type="text" placeholder="Your name" oninput="renderViewList()"/>
+    </div>
+    <div id="vw-body"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── SUPABASE INIT ───────────────────────────────────────────────
+const SUPABASE_URL = 'https://nlrxhslwfnjaprjmducn.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ─── STATE ───────────────────────────────────────────────────────
+let CU = null; // current user {id, email, name}
+let activeOcc = 'all';
+let tmpM = [];
+let viewPayload = null;
+
+// ─── HELPERS ─────────────────────────────────────────────────────
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';}
+function hideErr(id){const el=document.getElementById(id);el.style.display='none';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function uid(){return 'i'+Date.now()+Math.random().toString(36).slice(2,5);}
+function greeting(){
+  const h=new Date().getHours(),n=CU.name.split(' ')[0];
+  return h<12?'Good morning, '+n:h<18?'Good afternoon, '+n:'Good evening, '+n;
+}
+function setBusy(btnId,txtId,busy,label){
+  const b=document.getElementById(btnId);b.disabled=busy;
+  const t=document.getElementById(txtId);
+  if(busy){const s=document.createElement('span');s.className='spin';b.prepend(s);t.textContent='Please wait…';}
+  else{const sp=b.querySelector('.spin');if(sp)sp.remove();t.textContent=label;}
+}
+function priClass(p){return p==='Must have'?'badge-must':p==='Would love'?'badge-love':'badge-nice';}
+const AVCOL=['avcol-0','avcol-1','avcol-2','avcol-3','avcol-4'];
+
+// ─── ROUTING ─────────────────────────────────────────────────────
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='s-home')renderHome();
+  if(id==='s-groups')renderGroups();
+  if(id==='s-add')renderAddGroups();
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────
+function setTab(m){
+  document.getElementById('su-extra').style.display=m==='up'?'block':'none';
+  document.getElementById('a-btn-txt').textContent=m==='in'?'Log in':'Create my account';
+  document.getElementById('a-switch').textContent=m==='in'?'No account? Sign up free':'Already have an account? Log in';
+  document.getElementById('a-switch').onclick=()=>setTab(m==='in'?'up':'in');
+  document.getElementById('tab-in').classList.toggle('active',m==='in');
+  document.getElementById('tab-up').classList.toggle('active',m==='up');
+  document.getElementById('a-err').style.display='none';
+  document.getElementById('a-btn').dataset.mode=m;
+}
+
+async function doAuth(){
+  const mode=document.getElementById('a-btn').dataset.mode||'in';
+  const email=document.getElementById('a-email').value.trim().toLowerCase();
+  const pw=document.getElementById('a-pw').value;
+  hideErr('a-err');
+  if(!email||!pw){showErr('a-err','Please fill in all fields.');return;}
+  if(pw.length<6){showErr('a-err','Password must be at least 6 characters.');return;}
+  const label=mode==='in'?'Log in':'Create my account';
+  setBusy('a-btn','a-btn-txt',true,'');
+  try{
+    if(mode==='up'){
+      const name=document.getElementById('su-name').value.trim();
+      if(!name){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err','Please enter your name.');return;}
+      const {data,error}=await sb.auth.signUp({email,password:pw});
+      if(error){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err',error.message);return;}
+      await sb.from('profiles').insert({id:data.user.id,name,email});
+      CU={id:data.user.id,email,name};
+    } else {
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err','Incorrect email or password.');return;}
+      const {data:profile}=await sb.from('profiles').select('name').eq('id',data.user.id).single();
+      CU={id:data.user.id,email,name:profile?.name||email};
+    }
+    document.getElementById('h-email').textContent=CU.email;
+    setBusy('a-btn','a-btn-txt',false,label);
+    go('s-home');
+  }catch(e){
+    setBusy('a-btn','a-btn-txt',false,label);
+    showErr('a-err','Something went wrong. Please try again.');
+  }
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  CU=null;go('s-login');
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────
+function filterOcc(el){
+  document.querySelectorAll('.occ-pill').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');activeOcc=el.dataset.o;renderHome();
+}
+
+async function renderHome(){
+  document.getElementById('h-greeting').textContent=greeting();
+  const list=document.getElementById('wish-list');
+  list.innerHTML='<div class="loading-center"><span class="spin spin-dark"></span></div>';
+  let q=sb.from('wishes').select('*,wish_groups(group_id),claims(claimer_name)').eq('owner_id',CU.id);
+  if(activeOcc!=='all')q=q.eq('occasion',activeOcc);
+  const {data:ws,error}=await q.order('created_at',{ascending:false});
+  if(error||!ws||!ws.length){
+    list.innerHTML='<div class="empty"><i class="ti ti-gift"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No wishes yet</div><div style="font-size:13px">Tap "+ Add" to add your first wish!</div></div>';
+    return;
+  }
+  const {data:groups}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  const priOrder={'Must have':0,'Would love':1,'Nice to have':2};
+  ws.sort((a,b)=>(priOrder[a.priority]||1)-(priOrder[b.priority]||1));
+  list.innerHTML=ws.map(w=>{
+    const claimed=w.claims&&w.claims.length>0;
+    const gids=(w.wish_groups||[]).map(wg=>wg.group_id);
+    const gnames=gids.map(gid=>{const g=(groups||[]).find(x=>x.id===gid);return g?g.name:null}).filter(Boolean);
+    return `<div class="card" style="padding:12px;display:flex;gap:12px${claimed?';background:var(--bg2)':''}">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+          <span style="font-size:15px;font-weight:600;${claimed?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${esc(w.name)}</span>
+          <span class="badge ${priClass(w.priority)}">${w.priority}</span>
+          ${claimed?'<span class="badge badge-claimed"><i class="ti ti-check" style="font-size:11px"></i> Someone\'s on it</span>':''}
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">
+          <i class="ti ti-calendar" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${esc(w.occasion)}
+          ${w.url?` · <a href="${esc(w.url)}" target="_blank" style="color:var(--brand)">view item <i class="ti ti-external-link" style="font-size:11px"></i></a>`:''}
+        </div>
+        ${gnames.length
+          ?`<div style="margin-top:6px">${gnames.map(g=>`<span class="tag" style="font-size:11px"><i class="ti ti-users" style="font-size:11px"></i> ${esc(g)}</span>`).join('')}</div>`
+          :`<div style="font-size:11px;color:var(--text3);margin-top:4px"><i class="ti ti-eye-off" style="font-size:11px"></i> Not shared with any group</div>`}
+      </div>
+      <button class="btn btn-sm btn-danger" style="padding:4px 8px;align-self:flex-start;flex-shrink:0" onclick="removeWish('${w.id}')" aria-label="Remove"><i class="ti ti-trash" style="font-size:14px"></i></button>
+    </div>`;
+  }).join('');
+}
+
+async function removeWish(id){
+  if(!confirm('Remove this wish?'))return;
+  await sb.from('wish_groups').delete().eq('wish_id',id);
+  await sb.from('claims').delete().eq('wish_id',id);
+  await sb.from('wishes').delete().eq('id',id);
+  toast('Wish removed');renderHome();
+}
+
+// ─── ADD WISH ─────────────────────────────────────────────────────
+async function renderAddGroups(){
+  const wrap=document.getElementById('w-grp-chk');
+  const {data:gs}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  wrap.innerHTML=gs&&gs.length
+    ?gs.map(g=>`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" value="${g.id}" style="width:auto;accent-color:var(--brand)"> ${esc(g.name)}</label>`).join('')
+    :'<span style="font-size:13px;color:var(--text3)">No groups yet — create one from the Groups screen first</span>';
+}
+
+async function addWish(){
+  const name=document.getElementById('w-name').value.trim();
+  hideErr('add-err');
+  if(!name){showErr('add-err','Please enter what you\'d like to receive.');return;}
+  setBusy('add-btn','add-btn-txt',true,'');
+  const id=uid();
+  const {error}=await sb.from('wishes').insert({
+    id,owner_id:CU.id,name,
+    url:document.getElementById('w-url').value.trim()||null,
+    occasion:document.getElementById('w-occ').value,
+    priority:document.getElementById('w-pri').value
+  });
+  if(error){setBusy('add-btn','add-btn-txt',false,'Add to my list');showErr('add-err','Failed to save. Please try again.');return;}
+  const groups=[...document.querySelectorAll('#w-grp-chk input:checked')].map(c=>c.value);
+  if(groups.length){
+    await sb.from('wish_groups').insert(groups.map(gid=>({wish_id:id,group_id:gid})));
+  }
+  document.getElementById('w-name').value='';document.getElementById('w-url').value='';
+  setBusy('add-btn','add-btn-txt',false,'Add to my list');
+  toast('Wish added!');go('s-home');
+}
+
+// ─── GROUPS ───────────────────────────────────────────────────────
+async function renderGroups(){
+  const el=document.getElementById('groups-list');
+  el.innerHTML='<div class="loading-center"><span class="spin spin-dark"></span></div>';
+  const {data:gs}=await sb.from('groups').select('*').eq('owner_id',CU.id).order('created_at');
+  const {data:ws}=await sb.from('wishes').select('id,wish_groups(group_id)').eq('owner_id',CU.id);
+  if(!gs||!gs.length){
+    el.innerHTML='<div class="empty"><i class="ti ti-users"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No groups yet</div><div style="font-size:13px">Create a group to start sharing your list!</div></div>';
+    return;
+  }
+  el.innerHTML=gs.map((g,i)=>{
+    const wc=(ws||[]).filter(w=>(w.wish_groups||[]).some(wg=>wg.group_id===g.id)).length;
+    return `<div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 1.25rem" onclick="showGroupDetail('${g.id}')">
+      <div class="avatar ${AVCOL[i%5]}">${esc(g.name.slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:15px;color:var(--text)">${esc(g.name)}</div>
+        <div style="font-size:13px;color:var(--text2)">${(g.members||[]).length} member${(g.members||[]).length!==1?'s':''} · ${wc} wish${wc!==1?'es':''} shared</div>
+      </div>
+      <i class="ti ti-chevron-right" style="color:var(--text3);font-size:18px"></i>
+    </div>`;
+  }).join('');
+}
+
+async function showGroupDetail(gid){
+  const {data:g}=await sb.from('groups').select('*').eq('id',gid).single();
+  if(!g)return;
+  document.getElementById('gd-title').textContent=g.name;
+  const {data:wg}=await sb.from('wish_groups').select('wish_id').eq('group_id',gid);
+  const wishIds=(wg||[]).map(x=>x.wish_id);
+  let wishes=[];
+  if(wishIds.length){
+    const {data:ws}=await sb.from('wishes').select('*,claims(claimer_name)').in('id',wishIds);
+    wishes=ws||[];
+  }
+  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
+  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  document.getElementById('gd-body').innerHTML=`
+    <div class="lbl">Members</div>
+    <div style="margin-bottom:1rem">${(g.members||[]).map(m=>`<span class="tag"><i class="ti ti-user" style="font-size:12px"></i> ${esc(m)}</span>`).join('')}</div>
+    <div class="lbl">Wishes shared with this group (${wishes.length})</div>
+    ${wishes.length?wishes.map(w=>{
+      const claimed=w.claims&&w.claims.length>0;
+      return `<div class="card" style="padding:10px 1.25rem${claimed?';background:var(--bg2)':''}">
+        <div style="font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${esc(w.name)}${claimed?`<span class="badge badge-claimed"><i class="ti ti-check" style="font-size:11px"></i> ${esc(w.claims[0].claimer_name)} is on it</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc(w.occasion)} · <span class="badge ${priClass(w.priority)}" style="font-size:10px">${w.priority}</span></div>
+      </div>`;
+    }).join(''):`<div style="padding:1rem;text-align:center;color:var(--text3);font-size:14px">No wishes shared with this group yet</div>`}
+    <div class="lbl">Share code</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Send this to <strong>${esc(g.name)}</strong> — they paste it on the home screen to view and claim gifts.</div>
+    <div class="code-box" id="code-box-${gid}" onclick="copyCode('${code}','${gid}')" title="Tap to copy">
+      ${code.slice(0,64)}…<br><span style="color:var(--brand);font-family:inherit;font-size:12px"><i class="ti ti-copy" style="font-size:12px"></i> tap to copy</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="shareCode('${code}','${esc(g.name)}')"><i class="ti ti-share" style="font-size:14px"></i> Share via…</button>
+      <button class="btn btn-sm btn-success" id="notify-btn-${gid}" onclick="notifyMembers('${gid}')"><i class="ti ti-bell" style="font-size:14px"></i> Notify members</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteGroup('${gid}')"><i class="ti ti-trash" style="font-size:14px"></i> Delete group</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-top:8px"><i class="ti ti-info-circle" style="font-size:12px"></i> Notify members sends an email with the share code to all members with email addresses</div>`;
+  go('s-group-detail');
+}
+
+function copyCode(code,gid){
+  navigator.clipboard.writeText(code)
+    .then(()=>{toast('Share code copied!');const b=document.getElementById('code-box-'+gid);if(b)b.innerHTML='<span style="color:var(--teal);font-family:inherit"><i class="ti ti-check"></i> Copied to clipboard!</span>';})
+    .catch(()=>prompt('Copy this OurSpecialList share code:',code));
+}
+function shareCode(code,groupName){
+  const txt=`Here's my OurSpecialList gift list! Open ourspeciallist.com, paste this code on the home screen to view and claim gifts for ${groupName}: ${code}`;
+  if(navigator.share){navigator.share({title:'OurSpecialList',text:txt}).catch(()=>copyCode(code,''));}
+  else copyCode(code,'');
+}
+
+// ─── NEW GROUP ────────────────────────────────────────────────────
+tmpM=[];
+function addMTag(){
+  const inp=document.getElementById('ng-member');
+  const v=inp.value.trim();if(!v||tmpM.includes(v))return;
+  tmpM.push(v);inp.value='';renderNgTags();
+}
+function renderNgTags(){
+  document.getElementById('ng-tags').innerHTML=tmpM.map((m,i)=>`<span class="tag">${esc(m)}<span class="tag-rm" onclick="tmpM.splice(${i},1);renderNgTags()">×</span></span>`).join('');
+}
+async function sendGroupNotification(ownerName,groupName,members,shareCode){
+  try{
+    await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-group-members',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+      body:JSON.stringify({ownerName,groupName,members,shareCode})
+    });
+  }catch(e){console.error('Notification error:',e);}
+}
+
+async function createGroup(){
+  const name=document.getElementById('ng-name').value.trim();
+  hideErr('ng-err');
+  if(!name){showErr('ng-err','Please enter a group name.');return;}
+  if(!tmpM.length){showErr('ng-err','Add at least one member.');return;}
+  setBusy('ng-btn','ng-btn-txt',true,'');
+  const gid=uid();
+  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[...tmpM]});
+  if(error){setBusy('ng-btn','ng-btn-txt',false,'Create group');showErr('ng-err','Failed to save. Please try again.');return;}
+  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:name,wishIds:[]};
+  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const emailMembers=tmpM.filter(m=>m.includes('@'));
+  if(emailMembers.length){
+    toast('Group created! Sending notifications…');
+    await sendGroupNotification(CU.name,name,emailMembers,code);
+    toast('Group created! Members notified ✓');
+  } else {
+    toast('Group created!');
+  }
+  tmpM=[];renderNgTags();
+  document.getElementById('ng-name').value='';
+  setBusy('ng-btn','ng-btn-txt',false,'Create group');
+  go('s-groups');
+}
+
+async function notifyMembers(gid){
+  const gs=await sb.from('groups').select('*').eq('id',gid).single();
+  const g=gs.data;if(!g)return;
+  const {data:wg}=await sb.from('wish_groups').select('wish_id').eq('group_id',gid);
+  const wishIds=(wg||[]).map(x=>x.wish_id);
+  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
+  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const emailMembers=(g.members||[]).filter(m=>m.includes('@'));
+  if(!emailMembers.length){
+    toast('No email addresses in this group — add member emails to send notifications');
+    return;
+  }
+  const btn=document.getElementById('notify-btn-'+gid);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Sending…';}
+  await sendGroupNotification(CU.name,g.name,emailMembers,code);
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-bell"></i> Notify members';}
+  toast('Notifications sent to '+emailMembers.length+' member'+(emailMembers.length!==1?'s':'')+'! ✓');
+}
+async function deleteGroup(gid){
+  if(!confirm('Delete this group? Your wishes will stay but won\'t be shared here anymore.'))return;
+  await sb.from('wish_groups').delete().eq('group_id',gid);
+  await sb.from('groups').delete().eq('id',gid);
+  toast('Group deleted');go('s-groups');
+}
+
+// ─── VIEW (shared) ────────────────────────────────────────────────
+async function enterViewCode(){
+  const raw=document.getElementById('vc-input').value.trim();
+  hideErr('vc-err');
+  try{
+    const pad=raw+(raw.length%4?'='.repeat(4-raw.length%4):'');
+    viewPayload=JSON.parse(atob(pad));
+    document.getElementById('vw-title').textContent=viewPayload.ownerName+'\'s Special List';
+    document.getElementById('vw-sub').textContent=viewPayload.groupName+' · OurSpecialList';
+    await renderViewList();
+    go('s-view');
+  }catch(e){showErr('vc-err','That code doesn\'t look right — please check and try again.');}
+}
+
+async function renderViewList(){
+  if(!viewPayload)return;
+  const body=document.getElementById('vw-body');
+  body.innerHTML='<div class="loading-center"><span class="spin spin-dark"></span></div>';
+  if(!viewPayload.wishIds||!viewPayload.wishIds.length){
+    body.innerHTML='<div class="empty"><i class="ti ti-gift"></i>No wishes here yet — check back soon!</div>';return;
+  }
+  const {data:ws}=await sb.from('wishes').select('*,claims(claimer_name)').in('id',viewPayload.wishIds);
+  if(!ws||!ws.length){body.innerHTML='<div class="empty"><i class="ti ti-gift"></i>No wishes here yet!</div>';return;}
+  const myName=(document.getElementById('claimer').value||'').trim();
+  body.innerHTML=ws.map(w=>{
+    const claim=w.claims&&w.claims.length>0?w.claims[0]:null;
+    const isMine=claim&&myName&&claim.claimer_name===myName;
+    return `<div class="card" style="padding:12px;display:flex;gap:12px;align-items:flex-start${claim?';background:var(--bg2)':''}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;${claim?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${esc(w.name)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">
+          <i class="ti ti-calendar" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${esc(w.occasion)} · <span class="badge ${priClass(w.priority)}" style="font-size:10px">${w.priority}</span>
+          ${w.url?` · <a href="${esc(w.url)}" target="_blank" style="color:var(--brand)">view item <i class="ti ti-external-link" style="font-size:11px"></i></a>`:''}
+        </div>
+        ${claim?`<div style="font-size:12px;margin-top:5px;font-weight:500;color:${isMine?'var(--teal)':'#A32D2D'}"><i class="ti ti-${isMine?'check':'x'}" style="font-size:12px"></i> ${isMine?'You\'re buying this':'Already being bought — pick another!'}</div>`:''}
+      </div>
+      <div style="flex-shrink:0">
+        ${!claim
+          ?`<button class="btn btn-success btn-sm" onclick="claimWish('${w.id}')"><i class="ti ti-shopping-bag" style="font-size:14px"></i> I'll buy this</button>`
+          :isMine?`<button class="btn btn-sm btn-danger" onclick="unclaimWish('${w.id}')">Undo</button>`
+          :`<span style="font-size:12px;color:var(--text3)">Taken</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function claimWish(wid){
+  const name=(document.getElementById('claimer').value||'').trim();
+  if(!name){alert('Please enter your name at the top first!');return;}
+  await sb.from('claims').upsert({wish_id:wid,claimer_name:name});
+  toast('Gift claimed!');renderViewList();
+}
+async function unclaimWish(wid){
+  await sb.from('claims').delete().eq('wish_id',wid);
+  toast('Claim removed');renderViewList();
+}
+
+// ─── FORGOT PASSWORD ─────────────────────────────────────────────
+async function sendPasswordReset(){
+  const email=document.getElementById('fp-email').value.trim().toLowerCase();
+  hideErr('fp-err');
+  document.getElementById('fp-success').style.display='none';
+  if(!email){showErr('fp-err','Please enter your email address.');return;}
+  setBusy('fp-btn','fp-btn-txt',true,'');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{
+    redirectTo:window.location.origin+window.location.pathname+'?reset=true'
+  });
+  setBusy('fp-btn','fp-btn-txt',false,'Send reset link');
+  if(error){showErr('fp-err','Something went wrong. Please check the email and try again.');return;}
+  document.getElementById('fp-success').style.display='block';
+  document.getElementById('fp-btn').style.display='none';
+}
+
+async function doResetPassword(){
+  const pw=document.getElementById('rp-pw').value;
+  const pw2=document.getElementById('rp-pw2').value;
+  hideErr('rp-err');
+  if(!pw||pw.length<6){showErr('rp-err','Password must be at least 6 characters.');return;}
+  if(pw!==pw2){showErr('rp-err','Passwords don\'t match. Please try again.');return;}
+  setBusy('rp-btn','rp-btn-txt',true,'');
+  const {error}=await sb.auth.updateUser({password:pw});
+  setBusy('rp-btn','rp-btn-txt',false,'Update password');
+  if(error){showErr('rp-err','Something went wrong. Please try again.');return;}
+  toast('Password updated successfully!');
+  setTimeout(()=>go('s-login'),1500);
+}
+
+// ─── SESSION RESTORE ──────────────────────────────────────────────
+(async()=>{
+  // Handle password reset redirect
+  const params=new URLSearchParams(window.location.search);
+  const hash=window.location.hash;
+  if(params.get('reset')==='true'||hash.includes('type=recovery')){
+    go('s-reset');
+    return;
+  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    // Check if this is a recovery session
+    if(session.user?.aud==='authenticated' && hash.includes('type=recovery')){
+      go('s-reset');
+      return;
+    }
+    const {data:profile}=await sb.from('profiles').select('name').eq('id',session.user.id).single();
+    CU={id:session.user.id,email:session.user.email,name:profile?.name||session.user.email};
+    document.getElementById('h-email').textContent=CU.email;
+    go('s-home');
+  }
+
+  // Listen for auth state changes (handles password reset link click)
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      go('s-reset');
+    } else if(event==='SIGNED_IN' && session && !CU){
+      sb.from('profiles').select('name').eq('id',session.user.id).single().then(({data:profile})=>{
+        CU={id:session.user.id,email:session.user.email,name:profile?.name||session.user.email};
+        document.getElementById('h-email').textContent=CU.email;
+        go('s-home');
+      });
+    }
+  });
+})();
+
+document.getElementById('a-btn').dataset.mode='in';
+</script>
+</body>
+</html>
