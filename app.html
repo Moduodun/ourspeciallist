@@ -290,6 +290,44 @@
     </div>
   </div>
 
+  <!-- EDIT WISH -->
+  <div id="s-edit" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Edit wish</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>What would you love to receive?</label>
+        <input id="e-name" type="text" placeholder="e.g. Kindle Paperwhite, spa day, earrings…"/>
+      </div>
+      <div class="field">
+        <label>Link to the item (optional)</label>
+        <input id="e-url" type="url" placeholder="https://…"/>
+      </div>
+      <div class="field">
+        <label>Occasion</label>
+        <select id="e-occ">
+          <option>Birthday</option><option>Mother's Day</option><option>Valentine's</option><option>Christmas</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>How much do you want it?</label>
+        <select id="e-pri">
+          <option>Must have</option><option>Would love</option><option>Nice to have</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Share with which groups?</label>
+        <div id="e-grp-chk" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;min-height:24px"></div>
+      </div>
+      <div id="edit-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:18px" id="edit-btn" onclick="saveEditWish()">
+        <span id="edit-btn-txt">Save changes</span>
+      </button>
+    </div>
+  </div>
+
   <!-- GROUPS -->
   <div id="s-groups" class="screen">
     <div class="nav">
@@ -483,6 +521,7 @@ async function renderHome(){
           ?`<div style="margin-top:6px">${gnames.map(g=>`<span class="tag" style="font-size:11px"><i class="ti ti-users" style="font-size:11px"></i> ${esc(g)}</span>`).join('')}</div>`
           :`<div style="font-size:11px;color:var(--text3);margin-top:4px"><i class="ti ti-eye-off" style="font-size:11px"></i> Not shared with any group</div>`}
       </div>
+      <button class="btn btn-sm" style="padding:4px 8px;align-self:flex-start;flex-shrink:0" onclick="goEditWish('${w.id}')" aria-label="Edit"><i class="ti ti-pencil" style="font-size:14px"></i></button>
       <button class="btn btn-sm btn-danger" style="padding:4px 8px;align-self:flex-start;flex-shrink:0" onclick="removeWish('${w.id}')" aria-label="Remove"><i class="ti ti-trash" style="font-size:14px"></i></button>
     </div>`;
   }).join('');
@@ -527,7 +566,53 @@ async function addWish(){
   toast('Wish added!');go('s-home');
 }
 
-// ─── GROUPS ───────────────────────────────────────────────────────
+// ─── EDIT WISH ────────────────────────────────────────────────────
+let editingWishId=null;
+
+async function goEditWish(id){
+  editingWishId=id;
+  const {data:w}=await sb.from('wishes').select('*,wish_groups(group_id)').eq('id',id).single();
+  if(!w)return;
+  document.getElementById('e-name').value=w.name||'';
+  document.getElementById('e-url').value=w.url||'';
+  document.getElementById('e-occ').value=w.occasion||'Birthday';
+  document.getElementById('e-pri').value=w.priority||'Must have';
+  // Load groups with current selections
+  const {data:gs}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  const selectedGroups=(w.wish_groups||[]).map(wg=>wg.group_id);
+  const wrap=document.getElementById('e-grp-chk');
+  wrap.innerHTML=gs&&gs.length
+    ?gs.map(g=>`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:14px;color:var(--text)">
+        <input type="checkbox" value="${g.id}" ${selectedGroups.includes(g.id)?'checked':''} style="width:auto;accent-color:var(--brand)"> ${esc(g.name)}
+      </label>`).join('')
+    :'<span style="font-size:13px;color:var(--text3)">No groups yet</span>';
+  hideErr('edit-err');
+  go('s-edit');
+}
+
+async function saveEditWish(){
+  const name=document.getElementById('e-name').value.trim();
+  hideErr('edit-err');
+  if(!name){showErr('edit-err','Please enter what you\'d like to receive.');return;}
+  setBusy('edit-btn','edit-btn-txt',true,'');
+  const {error}=await sb.from('wishes').update({
+    name,
+    url:document.getElementById('e-url').value.trim()||null,
+    occasion:document.getElementById('e-occ').value,
+    priority:document.getElementById('e-pri').value
+  }).eq('id',editingWishId);
+  if(error){setBusy('edit-btn','edit-btn-txt',false,'Save changes');showErr('edit-err','Failed to save. Please try again.');return;}
+  // Update group assignments
+  await sb.from('wish_groups').delete().eq('wish_id',editingWishId);
+  const groups=[...document.querySelectorAll('#e-grp-chk input:checked')].map(c=>c.value);
+  if(groups.length){
+    await sb.from('wish_groups').insert(groups.map(gid=>({wish_id:editingWishId,group_id:gid})));
+  }
+  setBusy('edit-btn','edit-btn-txt',false,'Save changes');
+  toast('Wish updated!');go('s-home');
+}
+
+
 async function renderGroups(){
   const el=document.getElementById('groups-list');
   el.innerHTML='<div class="loading-center"><span class="spin spin-dark"></span></div>';
