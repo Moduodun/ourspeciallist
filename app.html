@@ -7,6 +7,12 @@
   <meta name="description" content="Create your gift wishlist and share it with exactly the right people for every special occasion."/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#C4507A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="OurSpecialList"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -880,6 +886,15 @@ async function doResetPassword(){
 })();
 
 document.getElementById('a-btn').dataset.mode='in';
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg=>console.log('SW registered:',reg.scope))
+      .catch(err=>console.log('SW error:',err));
+  });
+}
 </script>
 </body>
 </html>
