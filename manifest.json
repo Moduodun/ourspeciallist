@@ -1,0 +1,35 @@
+{
+  "name": "OurSpecialList",
+  "short_name": "OurSpecialList",
+  "description": "Create your gift wishlist and share it with exactly the right people for every special occasion",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#C4507A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "app.html",
+      "sizes": "390x844",
+      "type": "text/html",
+      "form_factor": "narrow",
+      "label": "OurSpecialList home screen"
+    }
+  ],
+  "categories": ["lifestyle", "social"],
+  "lang": "en-GB"
+}
