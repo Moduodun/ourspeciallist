@@ -1127,7 +1127,7 @@ async function goWeddingHub(){
           <div style="font-size:13px;color:var(--text2);line-height:1.6">Create your registry with your names, date, welcome message and a password</div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
-          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:function);font-size:13px;font-weight:700;color:var(--brand)">2</div>
+          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--brand)">2</div>
           <div style="font-size:13px;color:var(--text2);line-height:1.6">Add gifts you'd love — paste links and we'll show a preview</div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
@@ -1433,11 +1433,7 @@ async function claimWeddingItem(itemId, claimerId){
   toast('Gift claimed! 🎉');
   // Show address
   if(guestRegistry.address){
-    setTimeout(()=>alert('📦 Delivery address:
-
-' + guestRegistry.address + '
-
-Thank you so much for your gift! 💍'), 500);
+    setTimeout(()=>alert('📦 Delivery address:\n\n' + guestRegistry.address + '\n\nThank you so much for your gift! 💍'), 500);
   }
   await renderGuestRegistry();
 }
