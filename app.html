@@ -230,6 +230,190 @@
   </div>
 
 
+
+  <!-- WEDDING HUB -->
+  <div id="s-wedding-hub" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Wedding Registry</div>
+    </div>
+    <div style="text-align:center;padding:1.5rem 0 1rem">
+      <div style="font-size:40px;margin-bottom:10px">💍</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Your Wedding Registry</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;max-width:340px;margin:0 auto">Create a beautiful registry page your guests can visit. Share one link — no app needed for them.</div>
+    </div>
+    <div id="wedding-hub-body"></div>
+  </div>
+
+  <!-- WEDDING SETUP -->
+  <div id="s-wedding-setup" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-wedding-hub')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title" id="ws-title">Create your registry</div>
+    </div>
+    <div class="card">
+      <div class="lbl" style="margin-top:0">The couple</div>
+      <div class="field" style="margin-top:0">
+        <label>Partner 1 name</label>
+        <input id="wr-p1" type="text" placeholder="e.g. Modupe"/>
+      </div>
+      <div class="field">
+        <label>Partner 2 name</label>
+        <input id="wr-p2" type="text" placeholder="e.g. David"/>
+      </div>
+      <div class="field">
+        <label>Wedding month & year</label>
+        <input id="wr-date" type="month" placeholder="e.g. June 2026"/>
+      </div>
+      <div class="field">
+        <label>Welcome message to guests</label>
+        <textarea id="wr-msg" rows="3" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);font-family:inherit;resize:vertical" placeholder="e.g. Thank you so much for celebrating with us! Here are some things we'd love for our new home…"></textarea>
+      </div>
+      <div class="field">
+        <label>Wedding photo (optional)</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          <div id="wr-photo-preview" style="width:60px;height:60px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <i class="ti ti-camera" style="font-size:22px;color:var(--text3)"></i>
+          </div>
+          <div>
+            <button class="btn btn-sm" onclick="document.getElementById('wr-photo-input').click()"><i class="ti ti-upload"></i> Upload photo</button>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">Optional · Max 5MB</div>
+          </div>
+        </div>
+        <input type="file" id="wr-photo-input" accept="image/*" style="display:none" onchange="previewWeddingPhoto(this)"/>
+      </div>
+      <div class="lbl">Privacy</div>
+      <div class="field" style="margin-top:0">
+        <label>Password for guests to view your registry</label>
+        <input id="wr-pw" type="text" placeholder="e.g. ModupeAndDavid2026"/>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Share this with your guests so they can view your registry</div>
+      </div>
+      <div class="lbl">Delivery address</div>
+      <div class="field" style="margin-top:0">
+        <label>Where should gifts be sent?</label>
+        <textarea id="wr-addr" rows="3" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--bg);font-family:inherit;resize:vertical" placeholder="Your full address…"></textarea>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Only shown to guests after they claim a gift</div>
+      </div>
+      <div class="lbl">Cash gifts</div>
+      <div class="field" style="margin-top:0">
+        <label>Bank name (optional)</label>
+        <input id="wr-bank-name" type="text" placeholder="e.g. Barclays"/>
+      </div>
+      <div class="field">
+        <label>Account name (optional)</label>
+        <input id="wr-acc-name" type="text" placeholder="e.g. Modupe Odunlami"/>
+      </div>
+      <div class="field">
+        <label>Sort code (optional)</label>
+        <input id="wr-sort" type="text" placeholder="e.g. 20-00-00"/>
+      </div>
+      <div class="field">
+        <label>Account number (optional)</label>
+        <input id="wr-acc-num" type="text" placeholder="e.g. 12345678"/>
+      </div>
+      <div class="field">
+        <label>PayPal link (optional)</label>
+        <input id="wr-paypal" type="url" placeholder="https://paypal.me/..."/>
+      </div>
+      <div class="field">
+        <label>Registry URL — your guests will visit:</label>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text2)">
+          ourspeciallist.com/app.html#wedding/<span id="wr-url-preview" style="color:var(--brand);font-weight:500">your-names</span>
+        </div>
+        <input id="wr-slug" type="text" placeholder="e.g. modupe-and-david" style="margin-top:6px" oninput="document.getElementById('wr-url-preview').textContent=this.value||'your-names'"/>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Use lowercase letters and hyphens only</div>
+      </div>
+      <div id="ws-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:18px" id="ws-btn" onclick="saveWeddingRegistry()">
+        <span id="ws-btn-txt">Save registry</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- WEDDING REGISTRY ITEMS -->
+  <div id="s-wedding-items" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-wedding-hub')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Registry items</div>
+      <button class="btn btn-primary btn-sm" onclick="go('s-wedding-add-item')"><i class="ti ti-plus"></i> Add item</button>
+    </div>
+    <div id="wedding-items-list"></div>
+  </div>
+
+  <!-- WEDDING ADD ITEM -->
+  <div id="s-wedding-add-item" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-wedding-items')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">Add registry item</div>
+    </div>
+    <div class="card">
+      <div class="field" style="margin-top:0">
+        <label>Item name</label>
+        <input id="wi-name" type="text" placeholder="e.g. KitchenAid Stand Mixer"/>
+      </div>
+      <div class="field">
+        <label>Link to item</label>
+        <div style="display:flex;gap:8px">
+          <input id="wi-url" type="url" placeholder="https://..." style="flex:1" oninput="clearWeddingPreview()"/>
+          <button class="btn btn-sm" id="wi-fetch-btn" onclick="fetchItemPreview()"><i class="ti ti-search"></i> Preview</button>
+        </div>
+      </div>
+      <div id="wi-preview" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:8px;display:none">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <img id="wi-preview-img" src="" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:8px;display:none"/>
+          <div style="flex:1">
+            <div id="wi-preview-title" style="font-size:13px;font-weight:500;color:var(--text)"></div>
+            <div id="wi-preview-price" style="font-size:13px;color:var(--brand);margin-top:2px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Price (optional)</label>
+        <input id="wi-price" type="text" placeholder="e.g. £85"/>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <input id="wi-notes" type="text" placeholder="e.g. In silver please, size M"/>
+      </div>
+      <div class="field">
+        <label>Is this a cash contribution item?</label>
+        <select id="wi-cash">
+          <option value="no">No — it's a physical gift</option>
+          <option value="yes">Yes — guests contribute cash</option>
+        </select>
+      </div>
+      <div id="wi-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:18px" id="wi-btn" onclick="addWeddingItem()">
+        <span id="wi-btn-txt">Add to registry</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- WEDDING GUEST VIEW -->
+  <div id="s-wedding-guest" class="screen">
+    <div id="wg-body"></div>
+  </div>
+
+  <!-- WEDDING PASSWORD -->
+  <div id="s-wedding-pw" class="screen">
+    <div style="text-align:center;padding:3rem 1rem 2rem">
+      <div style="font-size:40px;margin-bottom:12px">💍</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px" id="wpw-names"></div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:1.5rem">This registry is password protected</div>
+    </div>
+    <div class="card">
+      <div class="field" style="margin-top:0">
+        <label>Enter password to view registry</label>
+        <input id="wpw-input" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkWeddingPw()"/>
+      </div>
+      <div id="wpw-err" class="err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="checkWeddingPw()">View Registry</button>
+    </div>
+    <div style="text-align:center;margin-top:1rem">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-login')"><i class="ti ti-arrow-left"></i> Back to OurSpecialList</button>
+    </div>
+  </div>
+
   <!-- PROFILE -->
   <div id="s-profile" class="screen">
     <div class="nav">
@@ -299,7 +483,7 @@
       <button class="occ-pill" data-o="Baby Shower" onclick="filterOcc(this)"><i class="ti ti-baby-carriage" style="font-size:12px"></i> Baby Shower</button>
       <button class="occ-pill" data-o="Graduation" onclick="filterOcc(this)"><i class="ti ti-school" style="font-size:12px"></i> Graduation</button>
       <button class="occ-pill" data-o="Housewarming" onclick="filterOcc(this)"><i class="ti ti-home" style="font-size:12px"></i> Housewarming</button>
-      <button class="occ-pill" data-o="Wedding" onclick="filterOcc(this)"><i class="ti ti-rings-wedding" style="font-size:12px"></i> Wedding</button>
+      <button class="occ-pill" data-o="Wedding" onclick="goWeddingHub()"><i class="ti ti-rings-wedding" style="font-size:12px"></i> 💍 Wedding Registry</button>
       <button class="occ-pill" data-o="Other" onclick="filterOcc(this)">Other</button>
     </div>
     <div id="wish-list"></div>
@@ -919,6 +1103,358 @@ async function doResetPassword(){
 }
 
 
+
+// ─── WEDDING REGISTRY ────────────────────────────────────────────
+let currentRegistry = null;
+let weddingPhotoFile = null;
+
+async function goWeddingHub(){
+  const {data:reg} = await sb.from('wedding_registries').select('*').eq('owner_id', CU.id).single();
+  currentRegistry = reg || null;
+  const body = document.getElementById('wedding-hub-body');
+  if(!reg){
+    body.innerHTML = `
+      <div style="background:var(--brand-light);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;text-align:center">
+        <div style="font-size:14px;color:var(--brand-dark);line-height:1.7;margin-bottom:1rem">
+          Create a beautiful wedding registry page your guests can visit with just a link and a password. No app needed for them!
+        </div>
+        <button class="btn btn-primary" onclick="openWeddingSetup(false)"><i class="ti ti-sparkles"></i> Create my registry</button>
+      </div>
+      <div class="lbl">How it works</div>
+      <div class="card" style="padding:1rem">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--brand)">1</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">Create your registry with your names, date, welcome message and a password</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:function);font-size:13px;font-weight:700;color:var(--brand)">2</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">Add gifts you'd love — paste links and we'll show a preview</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--brand)">3</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">Share your registry link and password with guests — they can claim gifts and contribute cash</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:28px;height:28px;background:var(--brand-light);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--brand)">4</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">After claiming, guests see your delivery address so they know where to send the gift</div>
+        </div>
+      </div>`;
+  } else {
+    const regUrl = window.location.origin + window.location.pathname + '#wedding/' + reg.slug;
+    body.innerHTML = `
+      <div class="card" style="text-align:center;padding:1.5rem">
+        <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">💍 ${esc(reg.partner1)} & ${esc(reg.partner2)}</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:1rem">${reg.wedding_date ? formatWeddingDate(reg.wedding_date) : ''}</div>
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;font-family:monospace;color:var(--text2);word-break:break-all;cursor:pointer;margin-bottom:8px" onclick="copyWeddingLink('${regUrl}')" title="Copy link">
+          ${regUrl} <span style="color:var(--brand);font-family:inherit"><i class="ti ti-copy" style="font-size:12px"></i> copy</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:1rem">Password: <strong style="color:var(--text)">${esc(reg.password)}</strong></div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="go('s-wedding-items');loadWeddingItems()"><i class="ti ti-gift"></i> Manage items</button>
+          <button class="btn btn-sm" onclick="openWeddingSetup(true)"><i class="ti ti-pencil"></i> Edit details</button>
+          <button class="btn btn-sm" onclick="copyWeddingLink('${regUrl}')"><i class="ti ti-share"></i> Share link</button>
+        </div>
+      </div>`;
+  }
+  go('s-wedding-hub');
+}
+
+function formatWeddingDate(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr + '-01');
+  return d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+}
+
+function copyWeddingLink(url){
+  navigator.clipboard.writeText(url).then(()=>toast('Registry link copied!')).catch(()=>prompt('Share this link:', url));
+}
+
+function openWeddingSetup(isEdit){
+  document.getElementById('ws-title').textContent = isEdit ? 'Edit registry' : 'Create your registry';
+  document.getElementById('ws-btn-txt').textContent = isEdit ? 'Save changes' : 'Create registry';
+  if(isEdit && currentRegistry){
+    const r = currentRegistry;
+    document.getElementById('wr-p1').value = r.partner1||'';
+    document.getElementById('wr-p2').value = r.partner2||'';
+    document.getElementById('wr-date').value = r.wedding_date||'';
+    document.getElementById('wr-msg').value = r.welcome_message||'';
+    document.getElementById('wr-pw').value = r.password||'';
+    document.getElementById('wr-addr').value = r.address||'';
+    document.getElementById('wr-bank-name').value = r.bank_name||'';
+    document.getElementById('wr-acc-name').value = r.account_name||'';
+    document.getElementById('wr-sort').value = r.sort_code||'';
+    document.getElementById('wr-acc-num').value = r.account_number||'';
+    document.getElementById('wr-paypal').value = r.paypal_link||'';
+    document.getElementById('wr-slug').value = r.slug||'';
+    document.getElementById('wr-url-preview').textContent = r.slug||'your-names';
+    if(r.photo_url){
+      const prev = document.getElementById('wr-photo-preview');
+      prev.innerHTML = `<img src="${r.photo_url}" style="width:100%;height:100%;object-fit:cover"/>`;
+    }
+  } else {
+    ['wr-p1','wr-p2','wr-date','wr-msg','wr-pw','wr-addr','wr-bank-name','wr-acc-name','wr-sort','wr-acc-num','wr-paypal','wr-slug'].forEach(id=>{document.getElementById(id).value='';});
+    document.getElementById('wr-url-preview').textContent='your-names';
+    document.getElementById('wr-photo-preview').innerHTML='<i class="ti ti-camera" style="font-size:22px;color:var(--text3)"></i>';
+  }
+  weddingPhotoFile=null;
+  hideErr('ws-err');
+  go('s-wedding-setup');
+}
+
+function previewWeddingPhoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  weddingPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('wr-photo-preview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveWeddingRegistry(){
+  const p1=document.getElementById('wr-p1').value.trim();
+  const p2=document.getElementById('wr-p2').value.trim();
+  const pw=document.getElementById('wr-pw').value.trim();
+  const slug=document.getElementById('wr-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-');
+  hideErr('ws-err');
+  if(!p1||!p2){showErr('ws-err','Please enter both names.');return;}
+  if(!pw){showErr('ws-err','Please set a password for guests.');return;}
+  if(!slug){showErr('ws-err','Please set a URL for your registry.');return;}
+  setBusy('ws-btn','ws-btn-txt',true,'');
+  let photoUrl = currentRegistry?.photo_url||null;
+  if(weddingPhotoFile){
+    const compressed = await compressImage(weddingPhotoFile, 800);
+    const path = `${CU.id}/wedding-photo.jpg`;
+    await sb.storage.from('avatars').upload(path, compressed, {upsert:true, contentType:'image/jpeg'});
+    const {data:{publicUrl}} = sb.storage.from('avatars').getPublicUrl(path);
+    photoUrl = publicUrl + '?t=' + Date.now();
+  }
+  const data = {
+    owner_id:CU.id, partner1:p1, partner2:p2,
+    wedding_date:document.getElementById('wr-date').value||null,
+    welcome_message:document.getElementById('wr-msg').value.trim()||null,
+    password:pw, slug,
+    address:document.getElementById('wr-addr').value.trim()||null,
+    bank_name:document.getElementById('wr-bank-name').value.trim()||null,
+    account_name:document.getElementById('wr-acc-name').value.trim()||null,
+    sort_code:document.getElementById('wr-sort').value.trim()||null,
+    account_number:document.getElementById('wr-acc-num').value.trim()||null,
+    paypal_link:document.getElementById('wr-paypal').value.trim()||null,
+    photo_url:photoUrl
+  };
+  const {error} = currentRegistry
+    ? await sb.from('wedding_registries').update(data).eq('id', currentRegistry.id)
+    : await sb.from('wedding_registries').insert(data);
+  setBusy('ws-btn','ws-btn-txt',false, currentRegistry?'Save changes':'Create registry');
+  if(error){showErr('ws-err', error.message.includes('duplicate')?'That URL is already taken — please choose another.':'Failed to save. Please try again.');return;}
+  toast(currentRegistry?'Registry updated!':'Registry created! 🎉');
+  await goWeddingHub();
+}
+
+async function loadWeddingItems(){
+  if(!currentRegistry){const {data:r}=await sb.from('wedding_registries').select('*').eq('owner_id',CU.id).single();currentRegistry=r;}
+  if(!currentRegistry) return;
+  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name)').eq('registry_id', currentRegistry.id).order('created_at');
+  const el = document.getElementById('wedding-items-list');
+  if(!items||!items.length){el.innerHTML='<div class="empty"><i class="ti ti-gift"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No items yet</div><div style="font-size:13px">Add your first registry item!</div></div>';return;}
+  el.innerHTML = items.map(item=>{
+    const claimed = item.wedding_claims && item.wedding_claims.length > 0;
+    return `<div class="card" style="padding:12px;display:flex;gap:12px;align-items:flex-start${claimed?';background:var(--bg2)':''}">
+      ${item.image_url?`<img src="${esc(item.image_url)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0"/>`:
+      `<div style="width:56px;height:56px;background:var(--brand-light);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-${item.is_cash?'currency-pound':'gift'}" style="font-size:22px;color:var(--brand)"></i></div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;${claimed?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${esc(item.name)}</div>
+        ${item.price?`<div style="font-size:13px;color:var(--brand);font-weight:500;margin-top:2px">${esc(item.price)}</div>`:''}
+        ${item.notes?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(item.notes)}</div>`:''}
+        ${claimed?`<div style="font-size:12px;color:var(--teal);margin-top:4px;font-weight:500"><i class="ti ti-check"></i> Claimed by ${esc(item.wedding_claims[0].claimer_name)}</div>`:''}
+        ${item.url?`<a href="${esc(item.url)}" target="_blank" style="font-size:12px;color:var(--brand);display:inline-block;margin-top:4px">View item <i class="ti ti-external-link" style="font-size:11px"></i></a>`:''}
+      </div>
+      <button class="btn btn-sm btn-danger" style="padding:4px 8px;flex-shrink:0" onclick="deleteWeddingItem('${item.id}')"><i class="ti ti-trash" style="font-size:14px"></i></button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteWeddingItem(id){
+  if(!confirm('Remove this item from your registry?')) return;
+  await sb.from('wedding_claims').delete().eq('item_id', id);
+  await sb.from('wedding_items').delete().eq('id', id);
+  toast('Item removed');
+  loadWeddingItems();
+}
+
+function clearWeddingPreview(){
+  document.getElementById('wi-preview').style.display='none';
+}
+
+async function fetchItemPreview(){
+  const url = document.getElementById('wi-url').value.trim();
+  if(!url) return;
+  const btn = document.getElementById('wi-fetch-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin spin-dark"></span>';
+  try{
+    // Use a simple meta fetcher via allorigins
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(data.contents, 'text/html');
+    const title = doc.querySelector('meta[property="og:title"]')?.content
+      || doc.querySelector('title')?.textContent || '';
+    const image = doc.querySelector('meta[property="og:image"]')?.content || '';
+    const price = doc.querySelector('meta[property="product:price:amount"]')?.content
+      || doc.querySelector('meta[property="og:price:amount"]')?.content || '';
+    if(title){
+      document.getElementById('wi-name').value = title.slice(0,80);
+      const prev = document.getElementById('wi-preview');
+      const prevImg = document.getElementById('wi-preview-img');
+      const prevTitle = document.getElementById('wi-preview-title');
+      const prevPrice = document.getElementById('wi-preview-price');
+      prevTitle.textContent = title.slice(0,80);
+      if(image){prevImg.src=image;prevImg.style.display='block';}else{prevImg.style.display='none';}
+      prevPrice.textContent = price ? '£'+price : '';
+      if(price) document.getElementById('wi-price').value = '£'+price;
+      prev.style.display='block';
+      toast('Preview loaded!');
+    } else {
+      toast('Could not fetch preview — fill in manually');
+    }
+  } catch(e){
+    toast('Could not fetch preview — fill in manually');
+  }
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-search"></i> Preview';
+}
+
+async function addWeddingItem(){
+  if(!currentRegistry){const {data:r}=await sb.from('wedding_registries').select('*').eq('owner_id',CU.id).single();currentRegistry=r;}
+  const name = document.getElementById('wi-name').value.trim();
+  hideErr('wi-err');
+  if(!name){showErr('wi-err','Please enter the item name.');return;}
+  setBusy('wi-btn','wi-btn-txt',true,'');
+  const imgEl = document.getElementById('wi-preview-img');
+  const {error} = await sb.from('wedding_items').insert({
+    id:'wi'+Date.now()+Math.random().toString(36).slice(2,5),
+    registry_id: currentRegistry.id,
+    name,
+    url: document.getElementById('wi-url').value.trim()||null,
+    price: document.getElementById('wi-price').value.trim()||null,
+    notes: document.getElementById('wi-notes').value.trim()||null,
+    image_url: imgEl&&imgEl.style.display!=='none'?imgEl.src:null,
+    is_cash: document.getElementById('wi-cash').value==='yes'
+  });
+  setBusy('wi-btn','wi-btn-txt',false,'Add to registry');
+  if(error){showErr('wi-err','Failed to save. Please try again.');return;}
+  ['wi-name','wi-url','wi-price','wi-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('wi-preview').style.display='none';
+  toast('Item added to registry!');
+  go('s-wedding-items');
+  loadWeddingItems();
+}
+
+// ─── WEDDING GUEST VIEW ──────────────────────────────────────────
+let guestRegistry = null;
+let guestRegistryId = null;
+
+async function loadWeddingGuest(slug){
+  const {data:reg} = await sb.from('wedding_registries').select('*').eq('slug', slug).single();
+  if(!reg){document.getElementById('wg-body').innerHTML='<div class="empty" style="padding:3rem"><div style="font-size:40px;margin-bottom:12px">💍</div><div>Registry not found</div></div>';go('s-wedding-guest');return;}
+  guestRegistry = reg;
+  document.getElementById('wpw-names').textContent = reg.partner1 + ' & ' + reg.partner2;
+  go('s-wedding-pw');
+}
+
+async function checkWeddingPw(){
+  const pw = document.getElementById('wpw-input').value;
+  hideErr('wpw-err');
+  if(pw !== guestRegistry.password){showErr('wpw-err','Incorrect password. Please try again.');return;}
+  await renderGuestRegistry();
+  go('s-wedding-guest');
+}
+
+async function renderGuestRegistry(){
+  const reg = guestRegistry;
+  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name,claimer_email)').eq('registry_id', reg.id).order('created_at');
+  const body = document.getElementById('wg-body');
+  const hasCash = reg.bank_name||reg.account_number||reg.paypal_link;
+  body.innerHTML = `
+    <div style="background:linear-gradient(135deg,#FBEAF0,#FFF5F8);padding:2rem 1.5rem;text-align:center;border-bottom:1px solid var(--border)">
+      ${reg.photo_url?`<img src="${esc(reg.photo_url)}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 4px 12px rgba(196,80,122,0.2);margin-bottom:1rem"/>`:'<div style="font-size:48px;margin-bottom:1rem">💍</div>'}
+      <div style="font-size:24px;font-weight:700;color:var(--brand-dark);margin-bottom:4px">${esc(reg.partner1)} & ${esc(reg.partner2)}</div>
+      ${reg.wedding_date?`<div style="font-size:14px;color:var(--brand);margin-bottom:10px">${formatWeddingDate(reg.wedding_date)}</div>`:''}
+      ${reg.welcome_message?`<div style="font-size:14px;color:var(--text2);line-height:1.7;max-width:400px;margin:0 auto;font-style:italic">"${esc(reg.welcome_message)}"</div>`:''}
+    </div>
+    <div style="padding:1rem">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin:1rem 0 10px">Gift Registry</div>
+      ${items&&items.length?items.map(item=>{
+        const claimed=item.wedding_claims&&item.wedding_claims.length>0;
+        return `<div class="card" style="padding:12px;margin-bottom:10px${claimed?';background:var(--bg2)':''}">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            ${item.image_url?`<img src="${esc(item.image_url)}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0"/>`:`<div style="width:64px;height:64px;background:var(--brand-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-${item.is_cash?'currency-pound':'gift'}" style="font-size:24px;color:var(--brand)"></i></div>`}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:600;${claimed?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${esc(item.name)}</div>
+              ${item.price?`<div style="font-size:14px;color:var(--brand);font-weight:600;margin-top:2px">${esc(item.price)}</div>`:''}
+              ${item.notes?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(item.notes)}</div>`:''}
+              ${item.url?`<a href="${esc(item.url)}" target="_blank" style="font-size:12px;color:var(--brand);display:inline-block;margin-top:4px">View item <i class="ti ti-external-link" style="font-size:11px"></i></a>`:''}
+              ${claimed?`<div style="font-size:12px;color:var(--teal);margin-top:6px;font-weight:500"><i class="ti ti-check"></i> Already claimed!</div>`:''}
+            </div>
+          </div>
+          ${!claimed?`
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:8px">
+              <input type="text" placeholder="Your name" id="gclaimer-${item.id}" style="flex:1;font-size:13px;padding:7px 10px"/>
+              <button class="btn btn-success btn-sm" onclick="claimWeddingItem('${item.id}','gclaimer-${item.id}')"><i class="ti ti-shopping-bag"></i> I'll get this</button>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join(''):'<div class="empty">No items added yet</div>'}
+      ${hasCash?`
+      <div style="font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin:1.5rem 0 10px">Cash Gift</div>
+      <div class="card" style="padding:1.25rem">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:40px;height:40px;background:var(--brand-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-currency-pound" style="font-size:20px;color:var(--brand)"></i></div>
+          <div style="font-weight:600;color:var(--text)">Contribute a cash gift</div>
+        </div>
+        ${reg.bank_name||reg.account_number?`
+        <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;font-size:13px;line-height:1.8;color:var(--text)">
+          ${reg.bank_name?`<div><strong>Bank:</strong> ${esc(reg.bank_name)}</div>`:''}
+          ${reg.account_name?`<div><strong>Name:</strong> ${esc(reg.account_name)}</div>`:''}
+          ${reg.sort_code?`<div><strong>Sort code:</strong> ${esc(reg.sort_code)}</div>`:''}
+          ${reg.account_number?`<div><strong>Account:</strong> ${esc(reg.account_number)}</div>`:''}
+        </div>`:''}
+        ${reg.paypal_link?`<a href="${esc(reg.paypal_link)}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex"><i class="ti ti-brand-paypal"></i> Send via PayPal</a>`:''}
+      </div>`:''}
+    </div>`;
+}
+
+async function claimWeddingItem(itemId, claimerId){
+  const name = document.getElementById(claimerId).value.trim();
+  if(!name){alert('Please enter your name first!');return;}
+  const {error} = await sb.from('wedding_claims').insert({item_id:itemId, claimer_name:name, registry_id:guestRegistry.id});
+  if(error){toast('Could not claim — already taken?');return;}
+  toast('Gift claimed! 🎉');
+  // Show address
+  if(guestRegistry.address){
+    setTimeout(()=>alert('📦 Delivery address:
+
+' + guestRegistry.address + '
+
+Thank you so much for your gift! 💍'), 500);
+  }
+  await renderGuestRegistry();
+}
+
+// Check for wedding registry URL on load
+function checkWeddingHash(){
+  const hash = window.location.hash;
+  if(hash.startsWith('#wedding/')){
+    const slug = hash.replace('#wedding/','');
+    if(slug) loadWeddingGuest(slug);
+  }
+}
+window.addEventListener('hashchange', ()=>{
+  if(window.location.hash.startsWith('#wedding/')) checkWeddingHash();
+});
+
+
 // ─── PROFILE & AVATAR ────────────────────────────────────────────
 function getInitials(name){return (name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();}
 
@@ -1044,6 +1580,7 @@ async function saveProfile(){
 })();
 
 document.getElementById('a-btn').dataset.mode='in';
+checkWeddingHash();
 
 // ─── SERVICE WORKER ──────────────────────────────────────────────
 if('serviceWorker' in navigator){
