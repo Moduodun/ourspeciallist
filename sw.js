@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ourspeciallist-v1';
+const CACHE_NAME = 'ourspeciallist-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -37,10 +37,13 @@ self.addEventListener('activate', event => {
 
 // Fetch — network first, fall back to cache
 self.addEventListener('fetch', event => {
-  // Skip non-GET requests and Supabase API calls
+  // Skip non-GET requests and Supabase/Resend/external API calls entirely
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('supabase.co')) return;
-  if (event.request.url.includes('resend.com')) return;
+  const url = event.request.url;
+  if (url.includes('supabase')) return;
+  if (url.includes('resend.com')) return;
+  if (url.includes('allorigins.win')) return;
+  if (!url.startsWith(self.location.origin)) return; // only handle same-origin requests
 
   event.respondWith(
     fetch(event.request)
