@@ -1255,7 +1255,7 @@ async function saveWeddingRegistry(){
 async function loadWeddingItems(){
   if(!currentRegistry){const {data:r}=await sb.from('wedding_registries').select('*').eq('owner_id',CU.id).single();currentRegistry=r;}
   if(!currentRegistry) return;
-  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name)').eq('registry_id', currentRegistry.id).order('created_at');
+  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name)').eq('registry_id', currentRegistry.id);
   const el = document.getElementById('wedding-items-list');
   if(!items||!items.length){el.innerHTML='<div class="empty"><i class="ti ti-gift"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No items yet</div><div style="font-size:13px">Add your first registry item!</div></div>';return;}
   el.innerHTML = items.map(item=>{
@@ -1372,7 +1372,7 @@ async function checkWeddingPw(){
 
 async function renderGuestRegistry(){
   const reg = guestRegistry;
-  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name,claimer_email)').eq('registry_id', reg.id).order('created_at');
+  const {data:items} = await sb.from('wedding_items').select('*,wedding_claims(claimer_name,claimer_email)').eq('registry_id', reg.id);
   const body = document.getElementById('wg-body');
   const hasCash = reg.bank_name||reg.account_number||reg.paypal_link;
   body.innerHTML = `
