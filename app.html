@@ -1405,7 +1405,7 @@ async function joinSwap(){
   setBusy('sj-btn','sj-btn-txt',true,'');
   // Check not already joined
   const {data:existing} = await sb.from('swap_participants').select('id').eq('swap_id',joinSwapData.id).eq('email',email).single();
-  if(existing){setBusy('sj-btn','sj-btn-txt',false,'Join Surprise Swap');showErr('sj-err','You've already joined this swap!');return;}
+  if(existing){setBusy('sj-btn','sj-btn-txt',false,'Join Surprise Swap');showErr('sj-err','You have already joined this swap!');return;}
   const {error} = await sb.from('swap_participants').insert({
     id:uid(),
     swap_id: joinSwapData.id,
