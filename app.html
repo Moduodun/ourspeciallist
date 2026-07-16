@@ -241,7 +241,7 @@
     </div>
     <div style="text-align:center;padding:1rem 0 1.5rem">
       <div style="font-size:36px;margin-bottom:8px">🎁</div>
-      <div style="font-size:14px;color:var(--text2);line-height:1.7;max-width:340px;margin:0 auto">Everyone joins, the app secretly assigns who buys for who, and nobody knows until the big reveal!</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;max-width:340px;margin:0 auto">The easiest way to organise a Secret Santa or gift exchange for any occasion.</div>
     </div>
     <div id="swap-hub-list"></div>
   </div>
@@ -1227,17 +1227,35 @@ async function goSurpriseSwap(){
   const el = document.getElementById('swap-hub-list');
   if(!swaps||!swaps.length){
     el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#EEEDFE,#F5F4FF);border-radius:var(--radius);padding:1.5rem;text-align:center;margin-bottom:1rem">
-        <div style="font-size:14px;color:#3C3489;line-height:1.7;margin-bottom:1rem">Create a gift exchange where everyone secretly buys for someone — the app does the matching!</div>
-        <button class="btn btn-primary" onclick="go('s-swap-create')"><i class="ti ti-sparkles"></i> Create my first Surprise Swap</button>
+      <div style="background:linear-gradient(135deg,#3C3489,#534AB7);border-radius:var(--radius);padding:2rem 1.5rem;text-align:center;margin-bottom:1rem;box-shadow:0 4px 20px rgba(83,74,183,0.25)">
+        <div style="font-size:36px;margin-bottom:12px">🎁</div>
+        <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:8px">Create a Secret Santa in under 2 minutes</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.7;margin-bottom:1.5rem;max-width:320px;margin-left:auto;margin-right:auto">Invite your friends, let everyone add their wishlists, and we'll secretly assign who buys for whom.</div>
+        <button onclick="go('s-swap-create')" style="background:#fff;color:#3C3489;border:none;padding:14px 28px;border-radius:30px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,0.15)">🎁 Create My First Swap</button>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:10px">Free · No app required · Works on any device</div>
+      </div>
+      <div style="background:#FFF8F0;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:1rem;font-size:14px;color:#8B5A2B;line-height:1.7;font-style:italic;text-align:center">
+        "Imagine everyone opening gifts while nobody knows who bought what... until the big reveal." 🎉
       </div>
       <div class="lbl">How Surprise Swap works</div>
       <div class="card" style="padding:1rem">
-        ${['You create a swap and share the join link','Friends join and add their wishlist link','You start the swap — the app secretly assigns pairs','Everyone gets an email telling them who to buy for','Optional reveal email on the big day!'].map((s,i)=>`
-        <div style="display:flex;gap:12px;align-items:flex-start;${i<4?'margin-bottom:12px':''}"}>
-          <div style="width:26px;height:26px;background:#EEEDFE;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;color:#534AB7">${i+1}</div>
-          <div style="font-size:13px;color:var(--text2);line-height:1.6;padding-top:3px">${s}</div>
+        ${[
+          {icon:'👥',text:'Invite friends — share a join link, no app needed'},
+          {icon:'🎁',text:'Everyone adds their OurSpecialList wishlist link'},
+          {icon:'🎲',text:'You start the swap — we secretly assign who buys for who'},
+          {icon:'📧',text:'Everyone gets an email telling them their assignment'},
+          {icon:'🎉',text:'Optional big reveal on the day — find out who bought for you!'}
+        ].map((s,i)=>`
+        <div style="display:flex;gap:12px;align-items:flex-start;${i<4?'margin-bottom:14px':''}>
+          <div style="width:36px;height:36px;background:#EEEDFE;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">${s.icon}</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;padding-top:8px">${s.text}</div>
         </div>`).join('')}
+      </div>
+      <div class="card" style="padding:1rem;margin-top:0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${['✔ Free to use','✔ No app required','✔ Works on any device','✔ Takes under 2 minutes'].map(t=>`
+          <div style="font-size:13px;color:var(--teal-dark);font-weight:500">${t}</div>`).join('')}
+        </div>
       </div>`;
   } else {
     el.innerHTML = swaps.map(s=>{
