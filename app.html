@@ -1887,6 +1887,17 @@ async function saveProfile(){
     go('s-reset');
     return;
   }
+
+  // Check for wedding registry or surprise swap links FIRST — no login needed
+  if(hash.startsWith('#wedding/')){
+    const slug=hash.replace('#wedding/','');
+    if(slug){loadWeddingGuest(slug);return;}
+  }
+  if(hash.startsWith('#swap/')){
+    const slug=hash.replace('#swap/','');
+    if(slug){loadJoinSwap(slug);return;}
+  }
+
   const {data:{session}}=await sb.auth.getSession();
   if(session){
     // Check if this is a recovery session
