@@ -336,10 +336,18 @@
 
   <!-- SWAP JOINED CONFIRMATION -->
   <div id="s-swap-joined" class="screen">
-    <div style="text-align:center;padding:3rem 1rem">
+    <div style="text-align:center;padding:3rem 1rem 1.5rem">
       <div style="font-size:56px;margin-bottom:16px">🎉</div>
       <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px">You're in!</div>
       <div style="font-size:15px;color:var(--text2);line-height:1.7;max-width:320px;margin:0 auto" id="sjc-msg"></div>
+    </div>
+    <div class="card" style="margin:0 0 12px;border-color:var(--brand);background:var(--brand-light)">
+      <div style="font-size:15px;font-weight:600;color:var(--brand-dark);margin-bottom:6px">🎁 Want your gifter to know what you want?</div>
+      <div style="font-size:13px;color:var(--brand-dark);line-height:1.6;margin-bottom:12px">Create a free OurSpecialList account and add your wishlist — your gifter will be able to see exactly what you'd love to receive!</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="go('s-login');setTab('up')"><i class="ti ti-sparkles"></i> Create my wishlist — it's free</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--text3)" onclick="document.getElementById('s-swap-joined').querySelector('.card').style.display='none'">No thanks</button>
+      </div>
     </div>
   </div>
 
