@@ -767,6 +767,10 @@
     <div class="card" style="border-color:var(--brand);margin-bottom:1rem">
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px"><i class="ti ti-user" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i> Enter your name so they know who's buying each gift</div>
       <input id="claimer" type="text" placeholder="Your name" oninput="renderViewList()"/>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:13px;color:var(--text2)">
+        <input type="checkbox" id="claimer-reveal" checked style="width:auto;accent-color:var(--brand)"/>
+        Let the wishlist owner know it's me when I claim a gift
+      </label>
     </div>
     <div id="vw-body"></div>
   </div>
@@ -1185,11 +1189,61 @@ async function renderViewList(){
 async function claimWish(wid){
   const name=(document.getElementById('claimer').value||'').trim();
   if(!name){alert('Please enter your name at the top first!');return;}
+  const revealName=document.getElementById('claimer-reveal').checked;
   await sb.from('claims').upsert({wish_id:wid,claimer_name:name});
-  toast('Gift claimed!');renderViewList();
+  toast('Gift claimed! 🎁');
+  // Notify wishlist owner
+  try{
+    // Get wish and owner details
+    const {data:wish}=await sb.from('wishes').select('name,owner_id').eq('id',wid).single();
+    if(wish){
+      const {data:owner}=await sb.from('profiles').select('name,email').eq('id',wish.owner_id).single();
+      if(owner&&owner.email){
+        await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-gift-claimed',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+          body:JSON.stringify({
+            ownerEmail:owner.email,
+            ownerName:owner.name,
+            wishName:wish.name,
+            claimerName:revealName?name:'Someone',
+            anonymous:!revealName,
+            action:'claimed'
+          })
+        });
+      }
+    }
+  }catch(e){console.error('Notification error:',e);}
+  renderViewList();
 }
+
 async function unclaimWish(wid){
-  await sb.from('claims').delete().eq('wish_id',wid);
+  const name=(document.getElementById('claimer').value||'').trim();
+  const revealName=document.getElementById('claimer-reveal')?.checked;
+  // Get wish details before deleting claim
+  try{
+    const {data:wish}=await sb.from('wishes').select('name,owner_id').eq('id',wid).single();
+    await sb.from('claims').delete().eq('wish_id',wid);
+    if(wish){
+      const {data:owner}=await sb.from('profiles').select('name,email').eq('id',wish.owner_id).single();
+      if(owner&&owner.email){
+        await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-gift-claimed',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+          body:JSON.stringify({
+            ownerEmail:owner.email,
+            ownerName:owner.name,
+            wishName:wish.name,
+            claimerName:revealName?name:'Someone',
+            anonymous:!revealName,
+            action:'unclaimed'
+          })
+        });
+      }
+    }
+  }catch(e){
+    await sb.from('claims').delete().eq('wish_id',wid);
+  }
   toast('Claim removed');renderViewList();
 }
 
