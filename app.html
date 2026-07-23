@@ -1321,6 +1321,7 @@ async function showSwapDetail(id){
   document.getElementById('sd-title').textContent = swap.name;
   const joinUrl = window.location.origin+window.location.pathname+'#swap/'+swap.slug;
   const canStart = parts&&parts.length>=2&&!swap.started;
+  const organiserJoining = swap.organiser_joining;
   document.getElementById('sd-body').innerHTML = `
     <div class="card" style="padding:1rem;text-align:center">
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Share this link with participants:</div>
@@ -1337,19 +1338,27 @@ async function showSwapDetail(id){
         <div style="width:32px;height:32px;background:#EEEDFE;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#534AB7;flex-shrink:0">${esc(p.name.slice(0,2).toUpperCase())}</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:500;color:var(--text)">${esc(p.name)}</div>
-          <div style="font-size:12px;color:var(--text2)">${esc(p.email)}${p.wishlist_url?` · <a href="${esc(p.wishlist_url)}" target="_blank" style="color:var(--brand)">wishlist</a>`:''}${p.assigned_to?` · buying for <strong>${esc(p.assigned_to)}</strong>`:'' }</div>
+          <div style="font-size:12px;color:var(--text2)">${esc(p.email)}${p.wishlist_url?` · <a href="${esc(p.wishlist_url)}" target="_blank" style="color:var(--brand)">wishlist</a>`:''}</div>
         </div>
       </div>`).join(''):`<div class="empty" style="padding:1.5rem">No participants yet — share the link!</div>`}
     ${!swap.started?`
-    <button class="btn btn-primary btn-full" style="margin-top:1rem${!canStart?';opacity:0.5':''}" ${!canStart?'disabled':''} onclick="startSwap('${id}')">
+    <button class="btn btn-primary btn-full" style="margin-top:1rem${!canStart?';opacity:0.5':''}" ${!canStart?'disabled':''} onclick="promptStartSwap('${id}')">
       <i class="ti ti-confetti"></i> ${canStart?'Start Swap — assign everyone secretly!':`Need at least 2 participants to start (${parts?parts.length:0} so far)`}
     </button>`:`
     <div style="background:#E1F5EE;border-radius:var(--radius-sm);padding:12px;text-align:center;margin-top:1rem">
       <div style="font-size:14px;font-weight:600;color:#0F6E56"><i class="ti ti-check"></i> Swap started! Everyone has been assigned and emailed.</div>
-    </div>`}
-    ${swap.started&&swap.do_reveal&&swap.reveal_date?`
-    <div style="margin-top:10px;font-size:13px;color:var(--text2);text-align:center">Reveal date: <strong>${new Date(swap.reveal_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong></div>`:''}
-    <button class="btn btn-danger btn-sm" style="margin-top:1rem" onclick="deleteSwap('${id}')"><i class="ti ti-trash"></i> Delete swap</button>`;
+    </div>
+    <button class="btn btn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="viewAssignments('${id}')"><i class="ti ti-eye"></i> View assignments (organiser only)</button>`}
+    <div class="lbl">Settings</div>
+    <div class="card" style="padding:1rem">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px">Reveal date</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="reveal-date-input" value="${swap.reveal_date||''}" style="flex:1;font-size:13px"/>
+        <button class="btn btn-sm btn-primary" onclick="updateRevealDate('${id}')">Save</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">All participants will be notified if you change this</div>
+    </div>
+    <button class="btn btn-danger btn-sm" style="margin-top:0.5rem" onclick="deleteSwap('${id}')"><i class="ti ti-trash"></i> Delete swap</button>`;
   go('s-swap-detail');
 }
 
@@ -1360,10 +1369,81 @@ function shareSwapLink(url,name){
   else copySwapLink(url);
 }
 
-async function startSwap(swapId){
-  if(!confirm('Start the swap now? This will secretly assign everyone and send emails. You cannot undo this.'))return;
+async function promptStartSwap(swapId){
+  // Ask organiser if they want to participate
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--radius);padding:1.5rem;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+      <div style="font-size:24px;text-align:center;margin-bottom:12px">🎁</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;text-align:center">Do you want to join the swap?</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1.5rem;text-align:center">As the organiser you can choose to participate too. If you join, you will be secretly assigned someone to buy for — and someone will buy for you!</div>
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <button class="btn btn-primary btn-full" onclick="startSwap('${swapId}',true);this.closest('div[style*=fixed]').remove()"><i class="ti ti-user-plus"></i> Yes — include me in the swap!</button>
+        <button class="btn btn-full" style="justify-content:center" onclick="startSwap('${swapId}',false);this.closest('div[style*=fixed]').remove()"><i class="ti ti-confetti"></i> No — just start for everyone else</button>
+        <button class="btn btn-ghost btn-sm" style="justify-content:center" onclick="this.closest('div[style*=fixed]').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function viewAssignments(swapId){
+  if(!confirm('This will show you who is buying for who — including who is buying for you. Are you sure you want to see this?'))return;
   const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',swapId);
-  if(!parts||parts.length<2){toast('Need at least 2 participants!');return;}
+  const list = parts.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-weight:500;color:var(--text)">${esc(p.name)}</span><span style="color:var(--text2)">→ buying for <strong>${esc(p.assigned_to||'Not assigned')}</strong></span></div>`).join('');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--radius);padding:1.5rem;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-height:80vh;overflow-y:auto">
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:1rem">All assignments</div>
+      ${list}
+      <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="this.closest('div[style*=fixed]').remove()">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function updateRevealDate(swapId){
+  const newDate = document.getElementById('reveal-date-input').value;
+  const {data:swap} = await sb.from('surprise_swaps').select('*').eq('id',swapId).single();
+  await sb.from('surprise_swaps').update({reveal_date:newDate||null}).eq('id',swapId);
+  // Notify participants if swap already started
+  if(swap.started && newDate){
+    const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',swapId);
+    const emailParts = (parts||[]).filter(p=>p.email);
+    if(emailParts.length){
+      try{
+        await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-swap-assignments',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+          body:JSON.stringify({swap:{...swap,reveal_date:newDate},assignments:emailParts.map(p=>({...p,assigned_to:p.assigned_to,reveal_date_update:true}))})
+        });
+      }catch(e){console.error('Email error:',e);}
+    }
+  }
+  toast(newDate?'Reveal date updated! Participants notified.':'Reveal date removed');
+  showSwapDetail(swapId);
+}
+
+async function startSwap(swapId, organiserJoins=false){
+  if(!confirm('Start the swap now? This will secretly assign everyone and send emails. You cannot undo this.'))return;
+  let {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',swapId);
+  if(!parts)parts=[];
+
+  // Add organiser as participant if they chose to join
+  if(organiserJoins){
+    const orgPart = {
+      id:uid(),
+      swap_id:swapId,
+      name:CU.name,
+      email:CU.email,
+      wishlist_url:null
+    };
+    await sb.from('swap_participants').insert(orgPart);
+    parts.push(orgPart);
+    await sb.from('surprise_swaps').update({organiser_joining:true}).eq('id',swapId);
+  }
+
+  if(parts.length<2){toast('Need at least 2 participants!');return;}
   // Fisher-Yates shuffle for assignments
   const shuffled = [...parts].sort(()=>Math.random()-0.5);
   const assignments = parts.map((p,i)=>({
