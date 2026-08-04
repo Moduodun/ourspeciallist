@@ -712,11 +712,48 @@
   <div id="s-groups" class="screen">
     <div class="nav">
       <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
-      <div class="nav-title">My sharing groups</div>
+      <div class="nav-title">Groups</div>
       <button class="btn btn-primary btn-sm" onclick="go('s-new-group')"><i class="ti ti-plus"></i> New</button>
     </div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Each group gets its own share code. Your children see different wishes than your siblings — you control who sees what.</div>
+    <div class="lbl" style="margin-top:0">Groups I created</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6">Each group gets its own share code. You control who sees what.</div>
     <div id="groups-list"></div>
+    <div class="lbl">Groups I am a member of</div>
+    <div id="member-groups-list"></div>
+  </div>
+
+  <!-- ACCEPT/DECLINE GROUP INVITATION -->
+  <div id="s-group-invite" class="screen">
+    <div style="text-align:center;padding:3rem 1rem 2rem">
+      <div style="font-size:48px;margin-bottom:16px">👋</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px" id="gi-title"></div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;max-width:320px;margin:0 auto" id="gi-msg"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:10px;flex-direction:column">
+        <button class="btn btn-primary btn-full" id="gi-accept-btn" onclick="respondToInvite('accepted')">
+          <i class="ti ti-check"></i> Accept — add to my profile
+        </button>
+        <button class="btn btn-full" style="justify-content:center;border-color:#E24B4A;color:#A32D2D" onclick="respondToInvite('declined')">
+          <i class="ti ti-x"></i> Decline
+        </button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:10px;text-align:center">
+        If you accept, this group will appear on your OurSpecialList profile permanently. You can leave at any time.
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:1rem">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-login')"><i class="ti ti-arrow-left"></i> Back to OurSpecialList</button>
+    </div>
+  </div>
+
+  <!-- MEMBER GROUP VIEW -->
+  <div id="s-member-group" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-groups')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title" id="mg-title"></div>
+    </div>
+    <div id="mg-body"></div>
   </div>
 
   <!-- NEW GROUP -->
@@ -944,6 +981,30 @@ async function addWish(){
   const groups=[...document.querySelectorAll('#w-grp-chk input:checked')].map(c=>c.value);
   if(groups.length){
     await sb.from('wish_groups').insert(groups.map(gid=>({wish_id:id,group_id:gid})));
+    // Notify accepted members of each group about new wish
+    try{
+      for(const gid of groups){
+        const {data:members}=await sb.from('group_memberships')
+          .select('member_email')
+          .eq('group_id',gid)
+          .eq('status','accepted');
+        const {data:grp}=await sb.from('groups').select('name').eq('id',gid).single();
+        if(members&&members.length&&grp){
+          await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-group-members',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+            body:JSON.stringify({
+              ownerName:CU.name,
+              groupName:grp.name,
+              members:members.map(m=>m.member_email),
+              shareCode:null,
+              newWish:name,
+              isNewWishNotification:true
+            })
+          });
+        }
+      }
+    }catch(e){console.error('New wish notification error:',e);}
   }
   document.getElementById('w-name').value='';document.getElementById('w-url').value='';
   setBusy('add-btn','add-btn-txt',false,'Add to my list');
@@ -1004,19 +1065,21 @@ async function renderGroups(){
   const {data:ws}=await sb.from('wishes').select('id,wish_groups(group_id)').eq('owner_id',CU.id);
   if(!gs||!gs.length){
     el.innerHTML='<div class="empty"><i class="ti ti-users"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No groups yet</div><div style="font-size:13px">Create a group to start sharing your list!</div></div>';
-    return;
+  } else {
+    el.innerHTML=gs.map((g,i)=>{
+      const wc=(ws||[]).filter(w=>(w.wish_groups||[]).some(wg=>wg.group_id===g.id)).length;
+      return `<div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 1.25rem" onclick="showGroupDetail('${g.id}')">
+        <div class="avatar ${AVCOL[i%5]}">${esc(g.name.slice(0,2).toUpperCase())}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:15px;color:var(--text)">${esc(g.name)}</div>
+          <div style="font-size:13px;color:var(--text2)">${(g.members||[]).length} member${(g.members||[]).length!==1?'s':''} · ${wc} wish${wc!==1?'es':''} shared</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text3);font-size:18px"></i>
+      </div>`;
+    }).join('');
   }
-  el.innerHTML=gs.map((g,i)=>{
-    const wc=(ws||[]).filter(w=>(w.wish_groups||[]).some(wg=>wg.group_id===g.id)).length;
-    return `<div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 1.25rem" onclick="showGroupDetail('${g.id}')">
-      <div class="avatar ${AVCOL[i%5]}">${esc(g.name.slice(0,2).toUpperCase())}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:15px;color:var(--text)">${esc(g.name)}</div>
-        <div style="font-size:13px;color:var(--text2)">${(g.members||[]).length} member${(g.members||[]).length!==1?'s':''} · ${wc} wish${wc!==1?'es':''} shared</div>
-      </div>
-      <i class="ti ti-chevron-right" style="color:var(--text3);font-size:18px"></i>
-    </div>`;
-  }).join('');
+  // Also load member groups
+  renderMemberGroups();
 }
 
 async function showGroupDetail(gid){
@@ -1099,13 +1162,31 @@ async function createGroup(){
   const gid=uid();
   const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[...tmpM]});
   if(error){setBusy('ng-btn','ng-btn-txt',false,'Create group');showErr('ng-err','Failed to save. Please try again.');return;}
+
+  // Create membership invitations for email members
+  const emailMembers=tmpM.filter(m=>m.includes('@'));
+  const invitations=[];
+  for(const email of emailMembers){
+    const token='inv-'+uid()+Math.random().toString(36).slice(2,8);
+    const {data:inv}=await sb.from('group_memberships').insert({
+      id:uid(),group_id:gid,member_email:email,status:'pending',token
+    }).select().single();
+    if(inv) invitations.push({email,token});
+  }
+
+  // Send invitation emails (with accept/decline links) + share code
   const payload={owner:CU.id,ownerName:CU.name,gid,groupName:name,wishIds:[]};
   const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
-  const emailMembers=tmpM.filter(m=>m.includes('@'));
-  if(emailMembers.length){
-    toast('Group created! Sending notifications…');
-    await sendGroupNotification(CU.name,name,emailMembers,code);
-    toast('Group created! Members notified ✓');
+  if(invitations.length){
+    toast('Group created! Sending invitations…');
+    try{
+      await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-group-invitation',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+        body:JSON.stringify({ownerName:CU.name,groupName:name,shareCode:code,invitations})
+      });
+    }catch(e){console.error('Invite email error:',e);}
+    toast('Group created! Invitations sent ✓');
   } else {
     toast('Group created!');
   }
@@ -1280,7 +1361,118 @@ async function doResetPassword(){
 
 
 
-// ─── SURPRISE SWAP ───────────────────────────────────────────────
+// ─── GROUP INVITATIONS & MEMBER GROUPS ───────────────────────────
+let currentInviteToken = null;
+let currentInviteData = null;
+
+async function checkGroupInviteHash(){
+  const hash = window.location.hash;
+  if(hash.startsWith('#accept-group/')){
+    const token = hash.replace('#accept-group/','');
+    if(token) loadGroupInvite(token);
+  }
+}
+
+async function loadGroupInvite(token){
+  const {data:inv} = await sb.from('group_memberships').select('*,groups(name,owner_id,profiles(name))').eq('token',token).single();
+  if(!inv){
+    document.getElementById('gi-title').textContent = 'Invitation not found';
+    document.getElementById('gi-msg').textContent = 'This invitation link may have expired or already been used.';
+    document.getElementById('gi-accept-btn').style.display = 'none';
+    go('s-group-invite');
+    return;
+  }
+  if(inv.status !== 'pending'){
+    document.getElementById('gi-title').textContent = inv.status === 'accepted' ? 'Already accepted!' : 'Invitation declined';
+    document.getElementById('gi-msg').textContent = inv.status === 'accepted' ? 'You have already accepted this invitation. Log in to view the group.' : 'You have already declined this invitation.';
+    go('s-group-invite');
+    return;
+  }
+  currentInviteToken = token;
+  currentInviteData = inv;
+  const ownerName = inv.groups?.profiles?.name || 'Someone';
+  const groupName = inv.groups?.name || 'a group';
+  document.getElementById('gi-title').textContent = `${ownerName} invited you!`;
+  document.getElementById('gi-msg').textContent = `${ownerName} has invited you to join "${groupName}" on OurSpecialList. If you accept, this group will appear on your profile and you can view their wishlist and claim gifts anytime.`;
+  go('s-group-invite');
+}
+
+async function respondToInvite(response){
+  if(!currentInviteToken || !currentInviteData) return;
+  await sb.from('group_memberships').update({status:response}).eq('token',currentInviteToken);
+  const ownerName = currentInviteData.groups?.profiles?.name || 'them';
+  const groupName = currentInviteData.groups?.name || 'the group';
+  if(response === 'accepted'){
+    document.getElementById('gi-title').textContent = 'You\'re in! 🎉';
+    document.getElementById('gi-msg').textContent = `You have joined "${groupName}". Log in to OurSpecialList to view ${ownerName}'s wishlist anytime from your Groups page.`;
+    document.getElementById('gi-accept-btn').style.display = 'none';
+  } else {
+    document.getElementById('gi-title').textContent = 'Invitation declined';
+    document.getElementById('gi-msg').textContent = 'No problem — you can always ask them to invite you again later.';
+    document.getElementById('gi-accept-btn').style.display = 'none';
+  }
+  // Clear the hash
+  history.replaceState(null,'',window.location.pathname);
+}
+
+async function renderMemberGroups(){
+  const el = document.getElementById('member-groups-list');
+  if(!el) return;
+  // Get accepted memberships for current user
+  const {data:memberships} = await sb.from('group_memberships')
+    .select('*,groups(id,name,owner_id,profiles(name,avatar_url))')
+    .eq('member_email', CU.email)
+    .eq('status','accepted');
+  if(!memberships||!memberships.length){
+    el.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0 1rem">No groups yet — when someone adds you to their group and you accept, it will appear here.</div>';
+    return;
+  }
+  el.innerHTML = memberships.map((m,i)=>{
+    const g = m.groups;
+    const ownerName = g?.profiles?.name || 'Unknown';
+    const avcol = ['#EEEDFE:#3C3489','#E1F5EE:#0F6E56','#FAECE7:#712B13','#FBEAF0:#72243E','#EAF3DE:#27500A'][i%5].split(':');
+    return `<div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 1.25rem" onclick="viewMemberGroup('${m.group_id}','${m.token}')">
+      <div style="width:36px;height:36px;border-radius:50%;background:${avcol[0]};color:${avcol[1]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${esc(ownerName.slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:15px;color:var(--text)">${esc(g?.name||'Group')}</div>
+        <div style="font-size:13px;color:var(--text2)">${esc(ownerName)}'s list</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <i class="ti ti-chevron-right" style="color:var(--text3)"></i>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function viewMemberGroup(groupId, token){
+  // Load the group and fetch owner's wishes shared with this group
+  const {data:g} = await sb.from('groups').select('*,profiles(name,email)').eq('id',groupId).single();
+  if(!g){toast('Group not found');return;}
+  const {data:wg} = await sb.from('wish_groups').select('wish_id').eq('group_id',groupId);
+  const wishIds = (wg||[]).map(x=>x.wish_id);
+  const ownerName = g.profiles?.name || 'Unknown';
+  // Set up view payload and go to viewer
+  viewPayload = {
+    owner: g.owner_id,
+    ownerName,
+    gid: groupId,
+    groupName: g.name,
+    wishIds
+  };
+  document.getElementById('vw-title').textContent = ownerName + '\'s Wishlist';
+  document.getElementById('vw-sub').textContent = g.name + ' · OurSpecialList';
+  await renderViewList();
+  go('s-view');
+}
+
+async function leaveGroup(groupId){
+  if(!confirm('Leave this group? You can be re-invited later.'))return;
+  await sb.from('group_memberships').delete().eq('group_id',groupId).eq('member_email',CU.email);
+  toast('You have left the group');
+  renderGroups();
+}
+
+
 let currentSwap = null;
 let joinSwapData = null;
 
@@ -1931,6 +2123,7 @@ function checkWeddingHash(){
 window.addEventListener('hashchange', ()=>{
   if(window.location.hash.startsWith('#wedding/')) checkWeddingHash();
 checkSwapHash();
+checkGroupInviteHash();
 });
 
 
@@ -2030,7 +2223,7 @@ async function saveProfile(){
     return;
   }
 
-  // Check for wedding registry or surprise swap links FIRST — no login needed
+  // Check for wedding registry, surprise swap or group invite links FIRST — no login needed
   if(hash.startsWith('#wedding/')){
     const slug=hash.replace('#wedding/','');
     if(slug){loadWeddingGuest(slug);return;}
@@ -2038,6 +2231,10 @@ async function saveProfile(){
   if(hash.startsWith('#swap/')){
     const slug=hash.replace('#swap/','');
     if(slug){loadJoinSwap(slug);return;}
+  }
+  if(hash.startsWith('#accept-group/')){
+    const token=hash.replace('#accept-group/','');
+    if(token){loadGroupInvite(token);return;}
   }
 
   const {data:{session}}=await sb.auth.getSession();
