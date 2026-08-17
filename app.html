@@ -1418,26 +1418,32 @@ async function respondToInvite(response){
 async function renderMemberGroups(){
   const el = document.getElementById('member-groups-list');
   if(!el) return;
-  // Get accepted memberships for current user
   const {data:memberships} = await sb.from('group_memberships')
-    .select('*,groups(id,name,owner_id,profiles(name,avatar_url))')
+    .select('*,groups(id,name,owner_id)')
     .eq('member_email', CU.email)
     .eq('status','accepted');
   if(!memberships||!memberships.length){
     el.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0 1rem">No groups yet — when someone adds you to their group and you accept, it will appear here.</div>';
     return;
   }
+  // Load owner profiles separately
+  const ownerIds = [...new Set(memberships.map(m=>m.groups?.owner_id).filter(Boolean))];
+  const {data:profiles} = await sb.from('profiles').select('id,name').in('id',ownerIds);
+  const profileMap = {};
+  (profiles||[]).forEach(p=>profileMap[p.id]=p.name);
+  const avcols = [['#EEEDFE','#3C3489'],['#E1F5EE','#0F6E56'],['#FAECE7','#712B13'],['#FBEAF0','#72243E'],['#EAF3DE','#27500A']];
   el.innerHTML = memberships.map((m,i)=>{
     const g = m.groups;
-    const ownerName = g?.profiles?.name || 'Unknown';
-    const avcol = ['#EEEDFE:#3C3489','#E1F5EE:#0F6E56','#FAECE7:#712B13','#FBEAF0:#72243E','#EAF3DE:#27500A'][i%5].split(':');
+    const ownerName = profileMap[g?.owner_id] || 'Unknown';
+    const [bg,fg] = avcols[i%5];
     return `<div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 1.25rem" onclick="viewMemberGroup('${m.group_id}','${m.token}')">
-      <div style="width:36px;height:36px;border-radius:50%;background:${avcol[0]};color:${avcol[1]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${esc(ownerName.slice(0,2).toUpperCase())}</div>
+      <div style="width:36px;height:36px;border-radius:50%;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${esc(ownerName.slice(0,2).toUpperCase())}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:15px;color:var(--text)">${esc(g?.name||'Group')}</div>
         <div style="font-size:13px;color:var(--text2)">${esc(ownerName)}'s list</div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:12px" onclick="event.stopPropagation();leaveGroup('${m.group_id}')"><i class="ti ti-logout" style="font-size:13px"></i></button>
         <i class="ti ti-chevron-right" style="color:var(--text3)"></i>
       </div>
     </div>`;
@@ -1445,13 +1451,13 @@ async function renderMemberGroups(){
 }
 
 async function viewMemberGroup(groupId, token){
-  // Load the group and fetch owner's wishes shared with this group
-  const {data:g} = await sb.from('groups').select('*,profiles(name,email)').eq('id',groupId).single();
+  const {data:g} = await sb.from('groups').select('*').eq('id',groupId).single();
   if(!g){toast('Group not found');return;}
+  // Load owner profile separately
+  const {data:owner} = await sb.from('profiles').select('name,email').eq('id',g.owner_id).single();
+  const ownerName = owner?.name || 'Unknown';
   const {data:wg} = await sb.from('wish_groups').select('wish_id').eq('group_id',groupId);
   const wishIds = (wg||[]).map(x=>x.wish_id);
-  const ownerName = g.profiles?.name || 'Unknown';
-  // Set up view payload and go to viewer
   viewPayload = {
     owner: g.owner_id,
     ownerName,
