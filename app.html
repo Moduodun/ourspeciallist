@@ -1308,7 +1308,12 @@ async function claimWish(wid){
   const name=(document.getElementById('claimer').value||'').trim();
   if(!name){alert('Please enter your name at the top first!');return;}
   const revealName=document.getElementById('claimer-reveal').checked;
-  await sb.from('claims').upsert({wish_id:wid,claimer_name:name});
+  const {error:claimErr}=await sb.from('claims').insert({wish_id:wid,claimer_name:name});
+  if(claimErr){
+    alert('Sorry, someone else has already claimed this gift.');
+    renderViewList();
+    return;
+  }
   toast('Gift claimed! 🎁');
   // Notify wishlist owner
   try{
