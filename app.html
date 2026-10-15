@@ -1041,21 +1041,23 @@ async function goEditWish(id){
   document.getElementById('e-occ').value=w.occasion||'Birthday';
   document.getElementById('e-pri').value=w.priority||'Must have';
   // Load groups with current selections
- // Load owned groups + member groups
-const {data:ownedGs}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
-const {data:memberGs}=await sb.from('group_memberships')
-  .select('group_id,groups(id,name)')
-  .eq('member_email',CU.email)
-  .eq('status','accepted');
-const allGroups=[
-  ...(ownedGs||[]),
-  ...(memberGs||[]).map(m=>m.groups).filter(Boolean)
-];
-const seen=new Set();
-const unique=allGroups.filter(g=>{if(seen.has(g.id))return false;seen.add(g.id);return true;});
-wrap.innerHTML=unique.length
-  ?unique.map(g=>`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" value="${g.id}" ${selectedGroups.includes(g.id)?'checked':''} style="width:auto;accent-color:var(--brand)"> ${esc(g.name)}</label>`).join('')
-  :'<​span style="font-size:13px;color:var(--text3)">No groups yet<​/span>';
+  const selectedGroups=(w.wish_groups||[]).map(wg=>wg.group_id);
+  const wrap=document.getElementById('e-grp-chk');
+  // Load owned groups + member groups
+  const {data:ownedGs}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  const {data:memberGs}=await sb.from('group_memberships')
+    .select('group_id,groups(id,name)')
+    .eq('member_email',CU.email)
+    .eq('status','accepted');
+  const allGroups=[
+    ...(ownedGs||[]),
+    ...(memberGs||[]).map(m=>m.groups).filter(Boolean)
+  ];
+  const seen=new Set();
+  const unique=allGroups.filter(g=>{if(seen.has(g.id))return false;seen.add(g.id);return true;});
+  wrap.innerHTML=unique.length
+    ?unique.map(g=>`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" value="${g.id}" ${selectedGroups.includes(g.id)?'checked':''} style="width:auto;accent-color:var(--brand)"> ${esc(g.name)}</label>`).join('')
+    :'<span style="font-size:13px;color:var(--text3)">No groups yet</span>';
   hideErr('edit-err');
   go('s-edit');
 }
