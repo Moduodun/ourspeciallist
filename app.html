@@ -909,6 +909,9 @@ function filterOcc(el){
   el.classList.add('sel');activeOcc=el.dataset.o;renderHome();
 }
 
+// claims is one object per wish (unique FK), so PostgREST returns an object, not an array
+function claimOf(w){const c=w.claims;return Array.isArray(c)?(c[0]||null):(c||null);}
+
 async function renderHome(){
   document.getElementById('h-greeting').textContent=greeting();
   const list=document.getElementById('wish-list');
@@ -934,7 +937,7 @@ async function renderHome(){
   const priOrder={'Must have':0,'Would love':1,'Nice to have':2};
   ws.sort((a,b)=>(priOrder[a.priority]||1)-(priOrder[b.priority]||1));
   list.innerHTML=ws.map(w=>{
-    const claimed=w.claims&&w.claims.length>0;
+    const claimed=!!claimOf(w);
     const gids=(w.wish_groups||[]).map(wg=>wg.group_id);
     const gnames=gids.map(gid=>{const g=(groups||[]).find(x=>x.id===gid);return g?g.name:null}).filter(Boolean);
     return `<div class="card" style="padding:12px;display:flex;gap:12px${claimed?';background:var(--bg2)':''}">
@@ -1137,10 +1140,10 @@ async function showGroupDetail(gid){
     <div style="margin-bottom:1rem">${(g.members||[]).map(m=>`<span class="tag"><i class="ti ti-user" style="font-size:12px"></i> ${esc(m)}</span>`).join('')}</div>
     <div class="lbl">Wishes shared with this group (${wishes.length})</div>
     ${wishes.length?wishes.map(w=>{
-      const claimed=w.claims&&w.claims.length>0;
+      const claimed=!!claimOf(w);
       return `<div class="card" style="padding:10px 1.25rem${claimed?';background:var(--bg2)':''}">
         <div style="font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          ${esc(w.name)}${claimed?`<span class="badge badge-claimed"><i class="ti ti-check" style="font-size:11px"></i> ${esc(w.claims[0].claimer_name)} is on it</span>`:''}
+          ${esc(w.name)}${claimed?`<span class="badge badge-claimed"><i class="ti ti-check" style="font-size:11px"></i> ${esc(claimOf(w).claimer_name)} is on it</span>`:''}
         </div>
         <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc(w.occasion)} · <span class="badge ${priClass(w.priority)}" style="font-size:10px">${w.priority}</span></div>
       </div>`;
@@ -1283,7 +1286,7 @@ async function renderViewList(){
   if(!ws||!ws.length){body.innerHTML='<div class="empty"><i class="ti ti-gift"></i>No wishes here yet!</div>';return;}
   const myName=(document.getElementById('claimer').value||'').trim();
   body.innerHTML=ws.map(w=>{
-    const claim=w.claims&&w.claims.length>0?w.claims[0]:null;
+    const claim=claimOf(w);
     const isMine=claim&&myName&&claim.claimer_name===myName;
     return `<div class="card" style="padding:12px;display:flex;gap:12px;align-items:flex-start${claim?';background:var(--bg2)':''}">
       <div style="flex:1;min-width:0">
