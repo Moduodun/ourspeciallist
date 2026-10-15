@@ -920,7 +920,17 @@ async function renderHome(){
     list.innerHTML='<div class="empty"><i class="ti ti-gift"></i><div style="font-size:15px;font-weight:500;margin-bottom:4px">No wishes yet</div><div style="font-size:13px">Tap "+ Add" to add your first wish!</div></div>';
     return;
   }
-  const {data:groups}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  const {data:ownedGs}=await sb.from('groups').select('id,name').eq('owner_id',CU.id);
+  const {data:memberGs}=await sb.from('group_memberships')
+    .select('group_id,groups(id,name)')
+    .eq('member_email',CU.email)
+    .eq('status','accepted');
+  const allGroups=[
+    ...(ownedGs||[]),
+    ...(memberGs||[]).map(m=>m.groups).filter(Boolean)
+  ];
+  const seen=new Set();
+  const groups=allGroups.filter(g=>{if(seen.has(g.id))return false;seen.add(g.id);return true;});
   const priOrder={'Must have':0,'Would love':1,'Nice to have':2};
   ws.sort((a,b)=>(priOrder[a.priority]||1)-(priOrder[b.priority]||1));
   list.innerHTML=ws.map(w=>{
