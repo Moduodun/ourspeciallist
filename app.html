@@ -1287,7 +1287,7 @@ async function renderViewList(){
   const myName=(document.getElementById('claimer').value||'').trim();
   body.innerHTML=ws.map(w=>{
     const claim=claimOf(w);
-    const isMine=claim&&myName&&claim.claimer_name===myName;
+    const isMine=!!claim&&!!claimTokens()[w.id];
     return `<div class="card" style="padding:12px;display:flex;gap:12px;align-items:flex-start${claim?';background:var(--bg2)':''}">
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:600;${claim?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${esc(w.name)}</div>
@@ -1300,24 +1300,31 @@ async function renderViewList(){
       <div style="flex-shrink:0">
         ${!claim
           ?`<button class="btn btn-success btn-sm" onclick="claimWish('${w.id}')"><i class="ti ti-shopping-bag" style="font-size:14px"></i> I'll buy this</button>`
-          :isMine?`<button class="btn btn-sm btn-danger" onclick="unclaimWish('${w.id}')">Undo</button>`
+          :isMine?`<button class="btn btn-sm btn-danger" onclick="unclaimWish('${w.id}')" aria-label="Undo claim" title="Undo claim" style="padding:4px 8px"><i class="ti ti-arrow-back-up" style="font-size:14px"></i></button>`
           :`<span style="font-size:12px;color:var(--text3)">Taken</span>`}
       </div>
     </div>`;
   }).join('');
 }
 
+// Secret claim tokens held only by this browser; the database checks them to allow Undo
+function claimTokens(){try{return JSON.parse(localStorage.getItem('claimTokens')||'{}');}catch(e){return {};}}
+function saveClaimToken(wid,t){try{const m=claimTokens();m[wid]=t;localStorage.setItem('claimTokens',JSON.stringify(m));}catch(e){}}
+function forgetClaimToken(wid){try{const m=claimTokens();delete m[wid];localStorage.setItem('claimTokens',JSON.stringify(m));}catch(e){}}
+
 async function claimWish(wid){
   const name=(document.getElementById('claimer').value||'').trim();
   if(!name){alert('Please enter your name at the top first!');return;}
   const revealName=document.getElementById('claimer-reveal').checked;
-  const {error:claimErr}=await sb.from('claims').insert({wish_id:wid,claimer_name:name});
-  if(claimErr){
+  const token=crypto.randomUUID();
+  const {data:claimed,error:claimErr}=await sb.rpc('claim_gift',{p_wish_id:wid,p_name:name,p_token:token});
+  if(claimErr||!claimed){
     alert('Sorry, someone else has already claimed this gift.');
     renderViewList();
     return;
   }
   toast('Gift claimed! 🎁');
+  saveClaimToken(wid,token);
   // Notify wishlist owner
   try{
     // Get wish and owner details
@@ -1349,7 +1356,7 @@ async function unclaimWish(wid){
   // Get wish details before deleting claim
   try{
     const {data:wish}=await sb.from('wishes').select('name,owner_id').eq('id',wid).single();
-    await sb.from('claims').delete().eq('wish_id',wid);
+    await sb.rpc('unclaim_gift',{p_wish_id:wid,p_token:claimTokens()[wid]||''});
     if(wish){
       const {data:owner}=await sb.from('profiles').select('name,email').eq('id',wish.owner_id).single();
       if(owner&&owner.email){
@@ -1368,8 +1375,9 @@ async function unclaimWish(wid){
       }
     }
   }catch(e){
-    await sb.from('claims').delete().eq('wish_id',wid);
+    await sb.rpc('unclaim_gift',{p_wish_id:wid,p_token:claimTokens()[wid]||''});
   }
+  forgetClaimToken(wid);
   toast('Claim removed');renderViewList();
 }
 
