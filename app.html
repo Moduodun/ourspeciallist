@@ -1148,7 +1148,7 @@ async function showGroupDetail(gid){
   const {data:ps}=ownerIds.length?await sb.from('profiles').select('id,name').in('id',ownerIds):{data:[]};
   const ownerName=id=>(ps||[]).find(p=>p.id===id)?.name||'a member';
   const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
-  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const code=g.share_code||btoa(JSON.stringify(payload)).replace(/=/g,'');
   document.getElementById('gd-body').innerHTML=`
     <div class="lbl">Members</div>
     <div style="margin-bottom:1rem">${(g.members||[]).map(m=>`<span class="tag"><i class="ti ti-user" style="font-size:12px"></i> ${esc(m)}</span>`).join('')}</div>
@@ -1166,7 +1166,7 @@ async function showGroupDetail(gid){
     <div class="lbl">Share code</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Send this to <strong>${esc(g.name)}</strong> — they paste it on the home screen to view and claim gifts.</div>
     <div class="code-box" id="code-box-${gid}" onclick="copyCode('${code}','${gid}')" title="Tap to copy">
-      ${code.slice(0,64)}…<br><span style="color:var(--brand);font-family:inherit;font-size:12px"><i class="ti ti-copy" style="font-size:12px"></i> tap to copy</span>
+      ${code.length>64?code.slice(0,64)+'…':code}<br><span style="color:var(--brand);font-family:inherit;font-size:12px"><i class="ti ti-copy" style="font-size:12px"></i> tap to copy</span>
     </div>
     <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
       <button class="btn btn-sm" onclick="shareCode('${code}','${esc(g.name)}')"><i class="ti ti-share" style="font-size:14px"></i> Share via…</button>
@@ -1208,6 +1208,9 @@ async function sendGroupNotification(ownerName,groupName,members,shareCode){
   }catch(e){console.error('Notification error:',e);}
 }
 
+// Short 8-character share code, e.g. 4KQ7W2MD
+function makeShareCode(){return Math.random().toString(36).slice(2,10).toUpperCase().padEnd(8,'X');}
+
 async function createGroup(){
   const name=document.getElementById('ng-name').value.trim();
   hideErr('ng-err');
@@ -1217,7 +1220,8 @@ async function createGroup(){
   const gid=uid();
   // The creator is always a member; they don't need to invite themselves
   const others=tmpM.filter(m=>m.toLowerCase()!==CU.email.toLowerCase());
-  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[CU.email,...others]});
+  const newShareCode=makeShareCode();
+  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,share_code:newShareCode,members:[CU.email,...others]});
   if(error){setBusy('ng-btn','ng-btn-txt',false,'Create group');showErr('ng-err','Failed to save. Please try again.');return;}
 
   // Create membership invitations for email members
@@ -1232,8 +1236,7 @@ async function createGroup(){
   }
 
   // Send invitation emails (with accept/decline links) + share code
-  const payload={owner:CU.id,ownerName:CU.name,gid,groupName:name,wishIds:[]};
-  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const code=newShareCode;
   if(invitations.length){
     toast('Group created! Sending invitations…');
     try{
@@ -1259,7 +1262,7 @@ async function notifyMembers(gid){
   const {data:wg}=await sb.from('wish_groups').select('wish_id').eq('group_id',gid);
   const wishIds=(wg||[]).map(x=>x.wish_id);
   const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
-  const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
+  const code=g.share_code||btoa(JSON.stringify(payload)).replace(/=/g,'');
   const emailMembers=(g.members||[]).filter(m=>m.includes('@'));
   if(!emailMembers.length){
     toast('No email addresses in this group — add member emails to send notifications');
@@ -1294,8 +1297,17 @@ async function enterViewCode(){
   const raw=document.getElementById('vc-input').value.trim();
   hideErr('vc-err');
   try{
-    const pad=raw+(raw.length%4?'='.repeat(4-raw.length%4):'');
-    viewPayload=JSON.parse(atob(pad));
+    const short=raw.toUpperCase();
+    if(/^[A-Z0-9]{8}$/.test(short)){
+      // Short code: the database looks up the group and its current wishes
+      const {data,error}=await sb.rpc('get_group_by_code',{p_code:short});
+      if(error||!data)throw new Error('not found');
+      viewPayload={gid:data.gid,groupName:data.groupName,ownerName:data.ownerName,wishIds:data.wishIds||[]};
+    }else{
+      // Older long codes still work
+      const pad=raw+(raw.length%4?'='.repeat(4-raw.length%4):'');
+      viewPayload=JSON.parse(atob(pad));
+    }
     document.getElementById('vw-title').textContent=viewPayload.groupName;
     document.getElementById('vw-sub').textContent='Shared by '+viewPayload.ownerName+' · OurSpecialList';
     await renderViewList();
