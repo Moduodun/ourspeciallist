@@ -1100,6 +1100,8 @@ async function saveEditWish(){
   const groups=[...document.querySelectorAll('#e-grp-chk input:checked')].map(c=>c.value);
   if(groups.length){
     await sb.from('wish_groups').insert(groups.map(gid=>({wish_id:editingWishId,group_id:gid})));
+  }else{
+    await clearClaimsIfUnshared([editingWishId]);
   }
   setBusy('edit-btn','edit-btn-txt',false,'Save changes');
   toast('Wish updated!');go('s-home');
@@ -1269,9 +1271,20 @@ async function notifyMembers(gid){
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-bell"></i> Notify members';}
   toast('Notifications sent to '+emailMembers.length+' member'+(emailMembers.length!==1?'s':'')+'! ✓');
 }
+// A claim only matters while the gift is still shared with someone.
+// Once a wish is shared with no groups, its claims are removed.
+async function clearClaimsIfUnshared(wishIds){
+  for(const wid of wishIds){
+    const {data:left}=await sb.from('wish_groups').select('group_id').eq('wish_id',wid).limit(1);
+    if(!left||!left.length) await sb.from('claims').delete().eq('wish_id',wid);
+  }
+}
+
 async function deleteGroup(gid){
   if(!confirm('Delete this group? Your wishes will stay but won\'t be shared here anymore.'))return;
+  const {data:affected}=await sb.from('wish_groups').select('wish_id').eq('group_id',gid);
   await sb.from('wish_groups').delete().eq('group_id',gid);
+  await clearClaimsIfUnshared((affected||[]).map(x=>x.wish_id));
   await sb.from('groups').delete().eq('id',gid);
   toast('Group deleted');go('s-groups');
 }
