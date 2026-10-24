@@ -1281,8 +1281,8 @@ async function enterViewCode(){
   try{
     const pad=raw+(raw.length%4?'='.repeat(4-raw.length%4):'');
     viewPayload=JSON.parse(atob(pad));
-    document.getElementById('vw-title').textContent=viewPayload.ownerName+'\'s Special List';
-    document.getElementById('vw-sub').textContent=viewPayload.groupName+' · OurSpecialList';
+    document.getElementById('vw-title').textContent=viewPayload.groupName;
+    document.getElementById('vw-sub').textContent='Shared by '+viewPayload.ownerName+' · OurSpecialList';
     await renderViewList();
     go('s-view');
   }catch(e){showErr('vc-err','That code doesn\'t look right — please check and try again.');}
@@ -1531,8 +1531,8 @@ async function viewMemberGroup(groupId, token){
     groupName: g.name,
     wishIds
   };
-  document.getElementById('vw-title').textContent = ownerName + '\'s Wishlist';
-  document.getElementById('vw-sub').textContent = g.name + ' · OurSpecialList';
+  document.getElementById('vw-title').textContent = g.name;
+  document.getElementById('vw-sub').textContent = 'Shared by ' + ownerName + ' · OurSpecialList';
   await renderViewList();
   go('s-view');
 }
