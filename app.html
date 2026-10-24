@@ -1141,6 +1141,10 @@ async function showGroupDetail(gid){
     const {data:ws}=await sb.from('wishes').select('*,claims(claimer_name)').in('id',wishIds);
     wishes=ws||[];
   }
+  // Look up each wish owner's name so members can see who shared which item
+  const ownerIds=[...new Set(wishes.map(w=>w.owner_id))];
+  const {data:ps}=ownerIds.length?await sb.from('profiles').select('id,name').in('id',ownerIds):{data:[]};
+  const ownerName=id=>(ps||[]).find(p=>p.id===id)?.name||'a member';
   const payload={owner:CU.id,ownerName:CU.name,gid,groupName:g.name,wishIds};
   const code=btoa(JSON.stringify(payload)).replace(/=/g,'');
   document.getElementById('gd-body').innerHTML=`
@@ -1153,6 +1157,7 @@ async function showGroupDetail(gid){
         <div style="font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           ${esc(w.name)}${claimed?`<span class="badge badge-claimed"><i class="ti ti-check" style="font-size:11px"></i> ${esc(claimOf(w).claimer_name)} is on it</span>`:''}
         </div>
+        <div style="font-size:12px;color:var(--brand);font-weight:500;margin-top:3px">Shared by ${esc(ownerName(w.owner_id))}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc(w.occasion)} · <span class="badge ${priClass(w.priority)}" style="font-size:10px">${w.priority}</span></div>
       </div>`;
     }).join(''):`<div style="padding:1rem;text-align:center;color:var(--text3);font-size:14px">No wishes shared with this group yet</div>`}
