@@ -1213,11 +1213,13 @@ async function createGroup(){
   if(!tmpM.length){showErr('ng-err','Add at least one member.');return;}
   setBusy('ng-btn','ng-btn-txt',true,'');
   const gid=uid();
-  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[...tmpM]});
+  // The creator is always a member; they don't need to invite themselves
+  const others=tmpM.filter(m=>m.toLowerCase()!==CU.email.toLowerCase());
+  const {error}=await sb.from('groups').insert({id:gid,owner_id:CU.id,name,members:[CU.email,...others]});
   if(error){setBusy('ng-btn','ng-btn-txt',false,'Create group');showErr('ng-err','Failed to save. Please try again.');return;}
 
   // Create membership invitations for email members
-  const emailMembers=tmpM.filter(m=>m.includes('@'));
+  const emailMembers=others.filter(m=>m.includes('@'));
   const invitations=[];
   for(const email of emailMembers){
     const token='inv-'+uid()+Math.random().toString(36).slice(2,8);
