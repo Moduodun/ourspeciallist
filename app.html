@@ -916,7 +916,7 @@ async function renderHome(){
   document.getElementById('h-greeting').textContent=greeting();
   const list=document.getElementById('wish-list');
   list.innerHTML='<div class="loading-center"><span class="spin spin-dark"></span></div>';
-  let q=sb.from('wishes').select('*,wish_groups(group_id),claims(claimer_name)').eq('owner_id',CU.id);
+  let q=sb.from('wishes').select('*,wish_groups(group_id),claims(claimer_name,claimed_at)').eq('owner_id',CU.id);
   if(activeOcc!=='all')q=q.eq('occasion',activeOcc);
   const {data:ws,error}=await q.order('created_at',{ascending:false});
   if(error||!ws||!ws.length){
@@ -936,7 +936,15 @@ async function renderHome(){
   const groups=allGroups.filter(g=>{if(seen.has(g.id))return false;seen.add(g.id);return true;});
   const priOrder={'Must have':0,'Would love':1,'Nice to have':2};
   ws.sort((a,b)=>(priOrder[a.priority]||1)-(priOrder[b.priority]||1));
-  list.innerHTML=ws.map(w=>{
+  // Banner for gifts claimed since this browser's last visit
+  const raw=localStorage.getItem('lastSeenClaims');
+  const lastSeen=raw?Number(raw):Date.now();
+  const newClaims=ws.filter(w=>{const c=claimOf(w);return c&&c.claimed_at&&new Date(c.claimed_at).getTime()>lastSeen;});
+  try{localStorage.setItem('lastSeenClaims',String(Date.now()));}catch(e){}
+  const notice=newClaims.length
+    ?`<div style="background:#E1F5EE;color:#085041;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px"><i class="ti ti-bell" style="font-size:14px"></i> ${newClaims.length} gift${newClaims.length>1?'s':''} ${newClaims.length>1?'were':'was'} claimed since your last visit: ${newClaims.map(w=>esc(w.name)).join(', ')}</div>`
+    :'';
+  list.innerHTML=notice+ws.map(w=>{
     const claimed=!!claimOf(w);
     const gids=(w.wish_groups||[]).map(wg=>wg.group_id);
     const gnames=gids.map(gid=>{const g=(groups||[]).find(x=>x.id===gid);return g?g.name:null}).filter(Boolean);
