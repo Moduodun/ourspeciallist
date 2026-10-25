@@ -1789,17 +1789,25 @@ async function startSwap(swapId, organiserJoins=false){
   }
 
   if(parts.length<2){toast('Need at least 2 participants!');return;}
-  // Fisher-Yates shuffle for assignments
-  const shuffled = [...parts].sort(()=>Math.random()-0.5);
-  const assignments = parts.map((p,i)=>({
-    id:p.id,
-    name:p.name,
-    email:p.email,
-    wishlist_url:p.wishlist_url,
-    assigned_to: shuffled[(i+1)%shuffled.length].name,
-    assigned_email: shuffled[(i+1)%shuffled.length].email,
-    assigned_wishlist: shuffled[(i+1)%shuffled.length].wishlist_url
-  }));
+  // Fisher-Yates shuffle, then everyone buys for the next person in the loop.
+  // This means nobody can be assigned to themselves.
+  const order = [...parts];
+  for(let i=order.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [order[i],order[j]] = [order[j],order[i]];
+  }
+  const assignments = order.map((p,i)=>{
+    const receiver = order[(i+1)%order.length];
+    return {
+      id:p.id,
+      name:p.name,
+      email:p.email,
+      wishlist_url:p.wishlist_url,
+      assigned_to: receiver.name,
+      assigned_email: receiver.email,
+      assigned_wishlist: receiver.wishlist_url
+    };
+  });
   // Save assignments
   for(const a of assignments){
     await sb.from('swap_participants').update({assigned_to:a.assigned_to}).eq('id',a.id);
@@ -1863,7 +1871,7 @@ async function joinSwap(){
     wishlist_url: document.getElementById('sj-wishlist').value.trim()||null
   });
   setBusy('sj-btn','sj-btn-txt',false,'Join Surprise Swap');
-  if(error){showErr('sj-err','Failed to join. Please try again.');return;}
+  if(error){showErr('sj-err', error.code==='23505' ? 'You have already joined this swap!' : 'Failed to join. Please try again.');return;}
   document.getElementById('sjc-msg').innerHTML = `You've joined <strong>${esc(joinSwapData.name)}</strong>!<br><br>Keep an eye on <strong>${esc(email)}</strong> — you'll get an email when the organiser starts the swap telling you who you're buying for. 🎁`;
   go('s-swap-joined');
 }
