@@ -1659,6 +1659,19 @@ async function createSwap(){
   showSwapDetail(data.id);
 }
 
+// Organiser adds a participant directly, for people who can't use the join link
+async function addSwapParticipant(swapId){
+  const name=document.getElementById('ap-name').value.trim();
+  const email=document.getElementById('ap-email').value.trim().toLowerCase();
+  const wish=document.getElementById('ap-wish').value.trim();
+  if(!name){toast('Please enter their name');return;}
+  if(!email.includes('@')){toast('Please enter a valid email address');return;}
+  const {error}=await sb.from('swap_participants').insert({id:uid(),swap_id:swapId,name,email,wishlist_url:wish||null});
+  if(error){toast(error.code==='23505'?'That email has already joined':'Could not add. Please try again.');return;}
+  toast('Participant added ✓');
+  showSwapDetail(swapId);
+}
+
 async function showSwapDetail(id){
   const {data:swap} = await sb.from('surprise_swaps').select('*').eq('id',id).single();
   const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',id);
@@ -1677,6 +1690,14 @@ async function showSwapDetail(id){
       </div>
     </div>
     ${swap.budget?`<div style="background:#EEEDFE;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:#3C3489;font-weight:500;text-align:center;margin-bottom:12px"><i class="ti ti-currency-pound"></i> Spending limit: ${esc(swap.budget)}</div>`:''}
+    ${!swap.started?`
+    <div class="card" style="padding:1rem;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px">Add someone yourself</div>
+      <input id="ap-name" type="text" placeholder="Name" style="width:100%;margin-bottom:8px"/>
+      <input id="ap-email" type="email" placeholder="Email address" style="width:100%;margin-bottom:8px"/>
+      <input id="ap-wish" type="url" placeholder="Wishlist link (optional)" style="width:100%;margin-bottom:8px"/>
+      <button class="btn btn-sm btn-primary btn-full" onclick="addSwapParticipant('${id}')"><i class="ti ti-user-plus"></i> Add participant</button>
+    </div>`:''}
     <div class="lbl">Participants (${parts?parts.length:0})</div>
     ${parts&&parts.length?parts.map(p=>`
       <div class="card" style="padding:10px 1.25rem;display:flex;align-items:center;gap:10px">
