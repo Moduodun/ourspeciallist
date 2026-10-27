@@ -320,7 +320,7 @@
         <div style="font-size:12px;color:var(--text3);margin-top:4px">We'll email you who you're buying for when the organiser starts the swap</div>
       </div>
       <div class="field">
-        <label>Your OurSpecialList wishlist link (optional)</label>
+        <label>Your Surprise Swap wishlist link (optional)</label>
         <input id="sj-wishlist" type="url" placeholder="https://ourspeciallist.com/app.html#..."/>
         <div style="font-size:12px;color:var(--text3);margin-top:4px">Share your wishlist so your gifter knows what you'd love</div>
       </div>
@@ -336,6 +336,38 @@
     </div>
     <div style="text-align:center;margin-top:1rem">
       <button class="btn btn-ghost btn-sm" onclick="go('s-login')"><i class="ti ti-arrow-left"></i> Back to OurSpecialList</button>
+    </div>
+  </div>
+
+  <!-- MY SURPRISE SWAP LIST (logged in) -->
+  <div id="s-swap-list" class="screen">
+    <div class="nav">
+      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div class="nav-title">My Surprise Swap list</div>
+    </div>
+    <div class="card" style="padding:1rem;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Add what you'd love. Share your link with your gifter. They don't need an account to see it.</div>
+      <input id="sw-name" type="text" placeholder="What would you love?" style="width:100%;margin-bottom:8px"/>
+      <input id="sw-url" type="url" placeholder="Link (optional)" style="width:100%;margin-bottom:8px"/>
+      <button class="btn btn-primary btn-sm btn-full" onclick="addSwapItem()"><i class="ti ti-plus"></i> Add to my swap list</button>
+    </div>
+    <div id="sw-items"></div>
+    <div class="card" style="padding:1rem;margin-top:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px">Your share link</div>
+      <div id="sw-link" style="font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:8px"></div>
+      <button class="btn btn-sm btn-full" onclick="copySwapListLink()"><i class="ti ti-copy"></i> Copy link</button>
+    </div>
+  </div>
+
+  <!-- SHARED SURPRISE SWAP LIST (anyone with the link) -->
+  <div id="s-swap-list-view" class="screen">
+    <div class="nav">
+      <div class="nav-title" id="swl-title"></div>
+    </div>
+    <div id="swl-body"></div>
+    <div class="card" style="padding:1rem;margin-top:12px;text-align:center">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Want your own gift list? It's free.</div>
+      <button class="btn btn-primary btn-sm" onclick="go('s-login');setTab('up')">Create my free account</button>
     </div>
   </div>
 
@@ -603,6 +635,7 @@
       <button class="occ-pill" data-o="Wedding" onclick="goWeddingHub()"><i class="ti ti-rings-wedding" style="font-size:12px"></i> 💍 Wedding Registry</button>
       <button class="occ-pill" data-o="Other" onclick="filterOcc(this)">Other</button>
       <button class="occ-pill" style="background:#EEEDFE;border-color:#534AB7;color:#3C3489;font-weight:500" onclick="goSurpriseSwap()"><i class="ti ti-confetti" style="font-size:12px"></i> 🎁 Surprise Swap</button>
+      <button class="occ-pill" style="padding:6px 10px" onclick="goSwapList()" title="My Surprise Swap list" aria-label="My Surprise Swap list"><i class="ti ti-list-details"></i></button>
     </div>
     <div id="wish-list"></div>
   </div>
@@ -1894,8 +1927,78 @@ async function joinSwap(){
   go('s-swap-joined');
 }
 
+// ─── MY SURPRISE SWAP LIST ────────────────────────────────────────
+async function goSwapList(){
+  if(!CU){toast('Please log in to create your swap list');go('s-login');return;}
+  await renderMySwapList();
+  go('s-swap-list');
+}
+
+async function renderMySwapList(){
+  const {data:items}=await sb.from('swap_items').select('*').eq('owner_id',CU.id).order('created_at');
+  document.getElementById('sw-items').innerHTML=(items||[]).length
+    ?items.map(i=>`<div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:var(--text)">${esc(i.name)}</div>
+          ${i.url?`<a href="${esc(i.url)}" target="_blank" style="font-size:12px;color:var(--brand)">view item</a>`:''}
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeSwapItem('${i.id}')" aria-label="Remove"><i class="ti ti-trash"></i></button>
+      </div>`).join('')
+    :'<div class="empty" style="padding:1rem">Nothing on your swap list yet</div>';
+  document.getElementById('sw-link').textContent=await getSwapListLink();
+}
+
+// Creates the share code the first time, then reuses it
+async function getSwapListLink(){
+  const {data:p}=await sb.from('profiles').select('swap_code').eq('id',CU.id).single();
+  let code=p&&p.swap_code;
+  if(!code){
+    code=makeShareCode();
+    const {error}=await sb.from('profiles').update({swap_code:code}).eq('id',CU.id);
+    if(error){toast('Could not create your link. Please try again.');return '';}
+  }
+  return window.location.origin+window.location.pathname+'#swaplist/'+code;
+}
+
+async function addSwapItem(){
+  const name=document.getElementById('sw-name').value.trim();
+  const url=document.getElementById('sw-url').value.trim();
+  if(!name){toast('Please enter what you would love');return;}
+  const {error}=await sb.from('swap_items').insert({id:uid(),owner_id:CU.id,name,url:url||null});
+  if(error){toast('Could not add. Please try again.');return;}
+  document.getElementById('sw-name').value='';
+  document.getElementById('sw-url').value='';
+  await renderMySwapList();
+}
+
+async function removeSwapItem(id){
+  await sb.from('swap_items').delete().eq('id',id);
+  await renderMySwapList();
+}
+
+async function copySwapListLink(){
+  const link=document.getElementById('sw-link').textContent;
+  try{await navigator.clipboard.writeText(link);toast('Link copied ✓');}
+  catch(e){toast('Copy this link: '+link);}
+}
+
+// Anyone with the link can see the list, no account needed
+async function loadSwapList(code){
+  const {data,error}=await sb.rpc('get_swap_list',{p_code:code.toUpperCase()});
+  if(error||!data){toast('This list could not be found');return;}
+  document.getElementById('swl-title').textContent=data.ownerName+'\'s Surprise Swap list';
+  document.getElementById('swl-body').innerHTML=(data.items||[]).length
+    ?data.items.map(i=>`<div class="card" style="padding:10px 14px">
+        <div style="font-weight:600;color:var(--text)">${esc(i.name)}</div>
+        ${i.url?`<a href="${esc(i.url)}" target="_blank" style="font-size:12px;color:var(--brand)">view item</a>`:''}
+      </div>`).join('')
+    :'<div class="empty" style="padding:1rem">This list is empty</div>';
+  go('s-swap-list-view');
+}
+
 function checkSwapHash(){
   const hash = window.location.hash;
+  if(hash.startsWith('#swaplist/')){loadSwapList(hash.replace('#swaplist/',''));return;}
   if(hash.startsWith('#swap/')){
     const slug = hash.replace('#swap/','');
     if(slug) loadJoinSwap(slug);
