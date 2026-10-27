@@ -1707,6 +1707,14 @@ async function addSwapParticipant(swapId){
   showSwapDetail(swapId);
 }
 
+async function removeSwapParticipant(participantId, swapId){
+  if(!confirm('Remove this person from the swap?')) return;
+  const {error}=await sb.from('swap_participants').delete().eq('id',participantId);
+  if(error){toast('Could not remove. Please try again.');return;}
+  toast('Participant removed');
+  showSwapDetail(swapId);
+}
+
 async function showSwapDetail(id){
   const {data:swap} = await sb.from('surprise_swaps').select('*').eq('id',id).single();
   const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',id);
@@ -1741,6 +1749,7 @@ async function showSwapDetail(id){
           <div style="font-size:14px;font-weight:500;color:var(--text)">${esc(p.name)}</div>
           <div style="font-size:12px;color:var(--text2)">${esc(p.email)}${p.wishlist_url?` · <a href="${esc(p.wishlist_url)}" target="_blank" style="color:var(--brand)">wishlist</a>`:''}</div>
         </div>
+        ${!swap.started?`<button class="btn btn-sm btn-danger" onclick="removeSwapParticipant('${p.id}','${id}')" aria-label="Remove participant"><i class="ti ti-user-minus"></i></button>`:''}
       </div>`).join(''):`<div class="empty" style="padding:1.5rem">No participants yet — share the link!</div>`}
     ${!swap.started?`
     <button class="btn btn-primary btn-full" style="margin-top:1rem${!canStart?';opacity:0.5':''}" ${!canStart?'disabled':''} onclick="promptStartSwap('${id}')">
