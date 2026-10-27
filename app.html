@@ -1327,6 +1327,11 @@ async function enterViewCode(){
   const raw=document.getElementById('vc-input').value.trim();
   hideErr('vc-err');
   try{
+    // Surprise Swap list link pasted in full
+    if(raw.includes('#swaplist/')){
+      await loadSwapList(raw.split('#swaplist/')[1].trim());
+      return;
+    }
     const short=raw.toUpperCase();
     if(/^[A-Z0-9]{8}$/.test(short)){
       // Short code: the database looks up the group and its current wishes
@@ -2459,6 +2464,10 @@ async function saveProfile(){
   if(hash.startsWith('#swap/')){
     const slug=hash.replace('#swap/','');
     if(slug){loadJoinSwap(slug);return;}
+  }
+  if(hash.startsWith('#swaplist/')){
+    const code=hash.replace('#swaplist/','');
+    if(code){loadSwapList(code);return;}
   }
   if(hash.startsWith('#accept-group/')){
     const token=hash.replace('#accept-group/','');
