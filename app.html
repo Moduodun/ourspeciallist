@@ -912,6 +912,12 @@ async function doAuth(){
       const {data,error}=await sb.auth.signUp({email,password:pw});
       if(error){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err',error.message);return;}
       await sb.from('profiles').insert({id:data.user.id,name,email});
+      // Welcome email (fire and forget: sign-up must not fail if the email fails)
+      fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/send-welcome-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+        body:JSON.stringify({userId:data.user.id})
+      }).catch(()=>{});
       CU={id:data.user.id,email,name};
     } else {
       const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
