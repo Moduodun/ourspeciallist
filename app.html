@@ -143,6 +143,10 @@
       <div id="su-extra" style="display:none" class="field">
         <label>Your name</label>
         <input id="su-name" type="text" placeholder="e.g. Sarah Johnson"/>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text2);margin-top:10px;font-weight:400">
+          <input id="su-newsletter" type="checkbox" style="width:auto;margin-top:3px"/>
+          <span>Send me OurSpecialList news and gift ideas. I can unsubscribe at any time.</span>
+        </label>
       </div>
       <div class="field">
         <label>Email</label>
@@ -911,7 +915,8 @@ async function doAuth(){
       if(!name){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err','Please enter your name.');return;}
       const {data,error}=await sb.auth.signUp({email,password:pw});
       if(error){setBusy('a-btn','a-btn-txt',false,label);showErr('a-err',error.message);return;}
-      await sb.from('profiles').insert({id:data.user.id,name,email});
+      const newsletterOptIn=document.getElementById('su-newsletter').checked;
+      await sb.from('profiles').insert({id:data.user.id,name,email,newsletter_opt_in:newsletterOptIn,newsletter_opted_in_at:newsletterOptIn?new Date().toISOString():null});
       // Welcome email (fire and forget: sign-up must not fail if the email fails)
       fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/send-welcome-email',{
         method:'POST',
