@@ -1726,6 +1726,37 @@ async function removeSwapParticipant(participantId, swapId){
   showSwapDetail(swapId);
 }
 
+// Resend assignment emails to chosen people (for anyone who didn't get theirs)
+async function resendSwapEmails(swapId){
+  const input = prompt('Paste the email addresses to resend to, separated by commas:');
+  if(!input) return;
+  const only = input.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+  if(!only.length){toast('No addresses entered');return;}
+  const {data:swap} = await sb.from('surprise_swaps').select('*').eq('id',swapId).single();
+  const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',swapId);
+  const list = parts||[];
+  const assignments = list.map(p=>{
+    const receiver = list.find(x=>x.name===p.assigned_to);
+    return {id:p.id,name:p.name,email:p.email,assigned_to:p.assigned_to,assigned_wishlist:receiver?receiver.wishlist_url:null};
+  });
+  toast('Sending emails…');
+  try{
+    const res = await fetch('https://nlrxhslwfnjaprjmducn.supabase.co/functions/v1/notify-swap-assignments',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scnhoc2x3Zm5qYXByam1kdWNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTE4ODIsImV4cCI6MjA5NDc2Nzg4Mn0._ZdrckdEub2znmL6rPbMSXyAqq2bMAjC8axyVAXdNXk'},
+      body:JSON.stringify({swap:{...swap,organiser_name:CU.name},assignments,only})
+    });
+    const out = await res.json();
+    if(out.failed&&out.failed.length){
+      alert(`Sent ${out.sent} email(s).\n\nStill failed for:\n${out.failed.join('\n')}`);
+    } else {
+      alert(`Sent ${out.sent} email(s) ✓`);
+    }
+  }catch(e){
+    alert('Could not send the emails. Please try again.');
+  }
+}
+
 async function showSwapDetail(id){
   const {data:swap} = await sb.from('surprise_swaps').select('*').eq('id',id).single();
   const {data:parts} = await sb.from('swap_participants').select('*').eq('swap_id',id);
@@ -1769,7 +1800,8 @@ async function showSwapDetail(id){
     <div style="background:#E1F5EE;border-radius:var(--radius-sm);padding:12px;text-align:center;margin-top:1rem">
       <div style="font-size:14px;font-weight:600;color:#0F6E56"><i class="ti ti-check"></i> Swap started! Everyone has been assigned and emailed.</div>
     </div>
-    <button class="btn btn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="viewAssignments('${id}')"><i class="ti ti-eye"></i> View assignments (organiser only)</button>`}
+    <button class="btn btn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="viewAssignments('${id}')"><i class="ti ti-eye"></i> View assignments (organiser only)</button>
+    <button class="btn btn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="resendSwapEmails('${id}')"><i class="ti ti-mail"></i> Resend emails to people who didn't get one</button>`}
     <div class="lbl">Settings</div>
     <div class="card" style="padding:1rem">
       <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px">Reveal date</div>
