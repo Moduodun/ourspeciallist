@@ -328,10 +328,10 @@
         <input id="sj-wishlist" type="url" placeholder="https://ourspeciallist.com/app.html#..."/>
         <div style="font-size:12px;color:var(--text3);margin-top:4px">Share your wishlist so your gifter knows what you'd love</div>
       </div>
-      <div style="background:var(--brand-light);border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0">
+      <div onclick="openWishlistSetup()" role="button" style="cursor:pointer;background:var(--brand-light);border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0">
         <div style="font-size:14px;font-weight:600;color:var(--brand-dark);margin-bottom:4px">🎁 Want your gifter to know what you want?</div>
-        <div style="font-size:13px;color:var(--brand-dark);line-height:1.6;margin-bottom:10px">Create a free OurSpecialList account, then tap the list icon next to Surprise Swap to add your items. Come back here and paste your link.</div>
-        <button class="btn btn-primary btn-sm" onclick="go('s-login');setTab('up')"><i class="ti ti-sparkles"></i> Create my free account</button>
+        <div style="font-size:13px;color:var(--brand-dark);line-height:1.6;margin-bottom:10px">Tap here to make your wish list. You'll log in or create a free account, add your items, and then come straight back to this invite.</div>
+        <button class="btn btn-primary btn-sm" type="button"><i class="ti ti-list-details"></i> Set up my wish list</button>
       </div>
       <div id="sj-err" class="err"></div>
       <button class="btn btn-primary btn-full" style="margin-top:18px" id="sj-btn" onclick="joinSwap()">
@@ -346,8 +346,11 @@
   <!-- MY SURPRISE SWAP LIST (logged in) -->
   <div id="s-swap-list" class="screen">
     <div class="nav">
-      <button class="btn btn-ghost btn-sm" onclick="go('s-home')"><i class="ti ti-arrow-left"></i> Back</button>
+      <button class="btn btn-ghost btn-sm" onclick="leaveSwapList()"><i class="ti ti-arrow-left"></i> Back</button>
       <div class="nav-title">My Surprise Swap list</div>
+    </div>
+    <div id="sw-back" style="display:none;margin-bottom:12px">
+      <button class="btn btn-primary btn-sm btn-full" onclick="backToSwapInvite()"><i class="ti ti-arrow-back-up"></i> Back to swap invite</button>
     </div>
     <div class="card" style="padding:1rem;margin-bottom:12px">
       <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Add what you'd love. Share your link with your gifter. They don't need an account to see it.</div>
@@ -932,7 +935,7 @@ async function doAuth(){
     }
     document.getElementById('h-email').textContent=CU.email;
     setBusy('a-btn','a-btn-txt',false,label);
-    go('s-home');
+    afterAuthGo();
   }catch(e){
     setBusy('a-btn','a-btn-txt',false,label);
     showErr('a-err','Something went wrong. Please try again.');
@@ -1793,6 +1796,7 @@ async function showSwapDetail(id){
         </div>
         ${!swap.started?`<button class="btn btn-sm btn-danger" onclick="removeSwapParticipant('${p.id}','${id}')" aria-label="Remove participant"><i class="ti ti-user-minus"></i></button>`:''}
       </div>`).join(''):`<div class="empty" style="padding:1.5rem">No participants yet — share the link!</div>`}
+    ${!swap.started?'<div id="sd-excl"></div>':''}
     ${!swap.started?`
     <button class="btn btn-primary btn-full" style="margin-top:1rem${!canStart?';opacity:0.5':''}" ${!canStart?'disabled':''} onclick="promptStartSwap('${id}')">
       <i class="ti ti-confetti"></i> ${canStart?'Start Swap — assign everyone secretly!':`Need at least 2 participants to start (${parts?parts.length:0} so far)`}
@@ -1813,6 +1817,7 @@ async function showSwapDetail(id){
     </div>
     <button class="btn btn-danger btn-sm" style="margin-top:0.5rem" onclick="deleteSwap('${id}')"><i class="ti ti-trash"></i> Delete swap</button>`;
   go('s-swap-detail');
+  if(!swap.started) renderExclusions(id);
 }
 
 function copySwapLink(url){navigator.clipboard.writeText(url).then(()=>toast('Link copied!')).catch(()=>prompt('Share this link:',url));}
@@ -1883,7 +1888,7 @@ async function startSwap(swapId, organiserJoins=false){
   if(!parts)parts=[];
 
   // Add organiser as participant if they chose to join
-  if(organiserJoins){
+  if(organiserJoins && !parts.some(p=>p.email===CU.email)){
     const orgPart = {
       id:uid(),
       swap_id:swapId,
@@ -1897,13 +1902,12 @@ async function startSwap(swapId, organiserJoins=false){
   }
 
   if(parts.length<2){toast('Need at least 2 participants!');return;}
-  // Fisher-Yates shuffle, then everyone buys for the next person in the loop.
-  // This means nobody can be assigned to themselves.
-  const order = [...parts];
-  for(let i=order.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [order[i],order[j]] = [order[j],order[i]];
-  }
+  // Load the organiser's exclusions, then find one loop that respects them.
+  // Everyone buys for the next person in the loop, so nobody buys for themselves.
+  const {data:exclRows} = await sb.from('swap_exclusions').select('giver_id,receiver_id').eq('swap_id',swapId);
+  const banned = new Set((exclRows||[]).map(x=>x.giver_id+'|'+x.receiver_id));
+  const order = findChain(parts, banned);
+  if(!order){toast('These exclusions make a valid draw impossible. Remove one and try again.');return;}
   const assignments = order.map((p,i)=>{
     const receiver = order[(i+1)%order.length];
     return {
@@ -1988,7 +1992,111 @@ async function joinSwap(){
 async function goSwapList(){
   if(!CU){toast('Please log in to create your swap list');go('s-login');return;}
   await renderMySwapList();
+  document.getElementById('sw-back').style.display=sessionStorage.getItem('swapReturn')?'block':'none';
   go('s-swap-list');
+}
+
+// Came from a swap invite: remember it so we can take them back afterwards
+function openWishlistSetup(){
+  if(!joinSwapData) return;
+  sessionStorage.setItem('swapReturn', joinSwapData.slug);
+  if(CU){goSwapList();}
+  else{go('s-login');setTab('up');}
+}
+
+// After logging in or signing up, go to the list if they came from an invite
+function afterAuthGo(){
+  if(sessionStorage.getItem('swapReturn')){goSwapList();}
+  else{go('s-home');}
+}
+
+function backToSwapInvite(){
+  const slug=sessionStorage.getItem('swapReturn');
+  sessionStorage.removeItem('swapReturn');
+  if(slug){loadJoinSwap(slug);}else{go('s-home');}
+}
+
+function leaveSwapList(){
+  sessionStorage.removeItem('swapReturn');
+  go('s-home');
+}
+
+// ─── DRAW HELPERS ────────────────────────────────────────────────
+function shuffleArr(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// Finds one loop through everyone where each person buys for the next,
+// nobody buys for themselves, and no banned pair (giver|receiver) is used.
+function findChain(parts, banned){
+  const n=parts.length;
+  if(n<2) return null;
+  const allowed=(g,r)=>g.id!==r.id && !banned.has(g.id+'|'+r.id);
+  for(let attempt=0; attempt<50; attempt++){
+    const start=shuffleArr([...parts])[0];
+    const path=[start];
+    const used=new Set([start.id]);
+    let steps=0;
+    const dfs=()=>{
+      if(path.length===n) return allowed(path[n-1], start);
+      if(++steps>20000) return false;
+      const last=path[path.length-1];
+      for(const cand of shuffleArr(parts.filter(p=>!used.has(p.id)))){
+        if(!allowed(last,cand)) continue;
+        path.push(cand); used.add(cand.id);
+        if(dfs()) return true;
+        path.pop(); used.delete(cand.id);
+      }
+      return false;
+    };
+    if(dfs()) return path;
+  }
+  return null;
+}
+
+// ─── EXCLUSIONS (organiser) ──────────────────────────────────────
+async function renderExclusions(swapId){
+  const wrap=document.getElementById('sd-excl');
+  if(!wrap) return;
+  const [{data:parts},{data:excl}] = await Promise.all([
+    sb.from('swap_participants').select('id,name').eq('swap_id',swapId),
+    sb.from('swap_exclusions').select('*').eq('swap_id',swapId)
+  ]);
+  const list=parts||[];
+  const nameOf=id=>{const p=list.find(x=>x.id===id);return p?p.name:'(removed)';};
+  const opts=list.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  const rows=(excl||[]).map(x=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span>${esc(nameOf(x.giver_id))} must not buy for ${esc(nameOf(x.receiver_id))}</span>
+      <button class="btn btn-sm btn-danger" onclick="removeExclusion('${x.id}','${swapId}')" aria-label="Remove"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  wrap.innerHTML=`<div class="card" style="padding:1rem;margin-top:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">Don't match these people</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">For example, couples, or people who shouldn't buy for each other.</div>
+      <select id="ex-giver" style="width:100%;margin-bottom:8px"><option value="">Who buys…</option>${opts}</select>
+      <select id="ex-receiver" style="width:100%;margin-bottom:8px"><option value="">…not for whom?</option>${opts}</select>
+      <button class="btn btn-sm btn-full" onclick="addExclusion('${swapId}')"><i class="ti ti-ban"></i> Add exclusion</button>
+      ${rows}
+    </div>`;
+}
+
+async function addExclusion(swapId){
+  const g=document.getElementById('ex-giver').value;
+  const r=document.getElementById('ex-receiver').value;
+  if(!g||!r){toast('Choose both people');return;}
+  if(g===r){toast('Choose two different people');return;}
+  const {error}=await sb.from('swap_exclusions').insert({id:uid(),swap_id:swapId,giver_id:g,receiver_id:r});
+  if(error){toast(error.code==='23505'?'That exclusion is already set':'Could not add. Please try again.');return;}
+  renderExclusions(swapId);
+}
+
+async function removeExclusion(exclId, swapId){
+  const {error}=await sb.from('swap_exclusions').delete().eq('id',exclId);
+  if(error){toast('Could not remove. Please try again.');return;}
+  renderExclusions(swapId);
 }
 
 async function renderMySwapList(){
